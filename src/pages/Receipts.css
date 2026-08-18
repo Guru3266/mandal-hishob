@@ -1,0 +1,1031 @@
+/* =========================================================
+   RECEIPTS PAGE
+========================================================= */
+
+.receipts-page {
+  width: 100%;
+  min-width: 0;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.receipts-header {
+  margin-bottom: 22px;
+}
+
+.receipts-header h1 {
+  margin: 0;
+  font-size: 27px;
+  line-height: 1.2;
+  color: #172033;
+  font-weight: 700;
+}
+
+.receipts-header p {
+  margin: 5px 0 0;
+  color: #7b8799;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+
+/* =========================================================
+   SUMMARY
+========================================================= */
+
+.receipts-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.receipt-summary-card {
+  min-width: 0;
+  min-height: 82px;
+
+  background: white;
+  border: 1px solid #e7eaf0;
+  border-radius: 14px;
+
+  padding: 17px 18px;
+
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.receipt-summary-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+
+  border-radius: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.receipt-summary-icon.blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.receipt-summary-icon.green {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.receipt-summary-icon.purple {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.receipt-summary-icon.yellow {
+  background: #fef3c7;
+  color: #a16207;
+}
+
+.receipt-summary-card > div:last-child {
+  min-width: 0;
+}
+
+.receipt-summary-card span {
+  display: block;
+  color: #7b8799;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.receipt-summary-card strong {
+  display: block;
+  margin-top: 5px;
+
+  color: #172033;
+  font-size: 19px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.receipts-panel {
+  width: 100%;
+
+  background: white;
+  border: 1px solid #e7eaf0;
+  border-radius: 14px;
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   PANEL HEADER
+========================================================= */
+
+.receipts-panel-header {
+  min-height: 76px;
+
+  padding: 18px 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+}
+
+.receipts-panel-header > div:first-child {
+  flex: 0 0 auto;
+}
+
+.receipts-panel-header h2 {
+  margin: 0;
+
+  color: #172033;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.receipts-panel-header p {
+  margin: 5px 0 0;
+
+  color: #8993a5;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+
+/* =========================================================
+   FILTERS
+========================================================= */
+
+.receipts-filters {
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 8px;
+
+  min-width: 0;
+}
+
+.receipts-search {
+  width: min(300px, 100%);
+  height: 40px;
+
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+  padding: 0 11px;
+
+  color: #7b8799;
+
+  flex-shrink: 1;
+
+  background: white;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.receipts-search:focus-within {
+  border-color: #f59e0b;
+
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.08);
+}
+
+.receipts-search svg {
+  flex-shrink: 0;
+}
+
+.receipts-search input {
+  width: 100%;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  font-size: 12px;
+  color: #334155;
+}
+
+.receipts-search input::placeholder {
+  color: #94a3b8;
+}
+
+.receipt-filter {
+  height: 40px;
+  min-width: 120px;
+
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+
+  padding: 0 10px;
+
+  background: white;
+  color: #475569;
+
+  outline: none;
+
+  font-size: 12px;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.receipt-filter:focus {
+  border-color: #f59e0b;
+
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.08);
+}
+
+.receipt-date-filter {
+  height: 40px;
+  min-width: 142px;
+
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+
+  padding: 0 10px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color: #64748b;
+
+  background: white;
+
+  flex-shrink: 0;
+}
+
+.receipt-date-filter input {
+  width: 100%;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  font-size: 11px;
+  color: #475569;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   TABLE SCROLL
+========================================================= */
+
+.receipts-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.receipts-table {
+  width: 100%;
+  min-width: 950px;
+
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.receipts-table th {
+  padding: 12px 18px;
+
+  background: #fafbfc;
+
+  color: #8791a3;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  text-align: left;
+  vertical-align: middle;
+
+  white-space: nowrap;
+
+  border-top: 1px solid #eef0f4;
+}
+
+.receipts-table td {
+  padding: 13px 18px;
+
+  border-top: 1px solid #eef0f4;
+
+  color: #475569;
+
+  font-size: 12px;
+
+  white-space: nowrap;
+  vertical-align: middle;
+
+  height: 60px;
+}
+
+.receipts-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.receipts-table tbody tr:hover {
+  background: #fcfdff;
+}
+
+
+/* =========================================================
+   RECEIPT NUMBER
+========================================================= */
+
+.receipt-number {
+  color: #334155;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   MEMBER
+========================================================= */
+
+.receipt-member {
+  min-width: 155px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.receipt-avatar {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+
+  border-radius: 50%;
+
+  background: #fff3d6;
+  color: #d97706;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.receipt-member > div:last-child {
+  min-width: 0;
+}
+
+.receipt-member strong {
+  display: block;
+
+  color: #172033;
+
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.receipt-member span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #94a3b8;
+
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+
+/* =========================================================
+   AMOUNT
+========================================================= */
+
+.receipt-amount {
+  color: #15803d;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   PAYMENT MODE
+========================================================= */
+
+.receipt-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 46px;
+
+  padding: 5px 8px;
+
+  border-radius: 5px;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  line-height: 1;
+}
+
+.receipt-mode.cash {
+  background: #fef3c7;
+  color: #a16207;
+}
+
+.receipt-mode.upi {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.receipt-mode.bank {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.receipt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  white-space: nowrap;
+}
+
+.receipt-action {
+  width: 32px;
+  height: 32px;
+
+  padding: 0;
+
+  border-radius: 7px;
+  border: 1px solid #dce1e8;
+
+  background: white;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.receipt-action:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.receipt-action.view {
+  color: #2563eb;
+}
+
+.receipt-action.print {
+  color: #15803d;
+}
+
+.receipt-action.whatsapp {
+  color: #15803d;
+
+  border-color: #bbf7d0;
+
+  background: #f0fdf4;
+}
+
+.receipt-action.whatsapp:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.receipts-empty {
+  min-height: 220px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  color: #94a3b8;
+
+  text-align: center;
+}
+
+.receipts-empty strong {
+  color: #475569;
+  font-size: 13px;
+}
+
+.receipts-empty span {
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   MODAL OVERLAY
+   Kept for compatibility with older receipt modal styles.
+========================================================= */
+
+.receipt-modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  background: rgba(15, 23, 42, 0.55);
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  z-index: 1000;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.receipt-modal {
+  width: 100%;
+  max-width: 520px;
+
+  max-height: 92vh;
+
+  overflow-y: auto;
+
+  background: white;
+
+  border-radius: 16px;
+
+  padding: 24px;
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.receipt-modal-header {
+  display: flex;
+
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: 15px;
+
+  margin-bottom: 18px;
+}
+
+.receipt-modal-header h2 {
+  margin: 0;
+
+  font-size: 20px;
+
+  line-height: 1.2;
+
+  color: #172033;
+}
+
+.receipt-modal-header p {
+  margin: 4px 0 0;
+
+  color: #8993a5;
+
+  font-size: 11px;
+}
+
+.receipt-close {
+  width: 32px;
+  height: 32px;
+
+  min-width: 32px;
+
+  border: none;
+
+  background: #f1f5f9;
+
+  border-radius: 7px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  color: #475569;
+
+  transition:
+    background 0.15s ease;
+}
+
+.receipt-close:hover {
+  background: #e2e8f0;
+}
+
+
+/* =========================================================
+   RECEIPT PREVIEW
+========================================================= */
+
+.receipt-preview {
+  border: 1px solid #dfe4ea;
+
+  border-radius: 10px;
+
+  padding: 25px;
+}
+
+.receipt-preview-header {
+  text-align: center;
+
+  border-bottom:
+    2px solid #f59e0b;
+
+  padding-bottom: 17px;
+}
+
+.receipt-preview-header h2 {
+  margin: 0;
+
+  font-size: 21px;
+
+  color: #172033;
+}
+
+.receipt-preview-header p {
+  margin: 4px 0 0;
+
+  color: #64748b;
+
+  font-size: 12px;
+}
+
+.receipt-preview-header strong {
+  display: block;
+
+  margin-top: 8px;
+
+  color: #475569;
+}
+
+
+/* =========================================================
+   RECEIPT NUMBER
+========================================================= */
+
+.receipt-number-row {
+  text-align: right;
+
+  padding: 15px 0;
+
+  font-size: 11px;
+
+  color: #64748b;
+}
+
+.receipt-number-row strong {
+  margin-left: 5px;
+
+  color: #172033;
+}
+
+
+/* =========================================================
+   RECEIPT DETAILS
+========================================================= */
+
+.receipt-detail-row {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 11px 0;
+
+  border-bottom:
+    1px solid #eef0f4;
+
+  font-size: 12px;
+}
+
+.receipt-detail-row span {
+  color: #64748b;
+}
+
+.receipt-detail-row strong {
+  color: #172033;
+
+  text-align: right;
+}
+
+
+/* =========================================================
+   BIG AMOUNT
+========================================================= */
+
+.receipt-big-amount {
+  text-align: center;
+
+  margin-top: 22px;
+}
+
+.receipt-big-amount span {
+  display: block;
+
+  color: #64748b;
+
+  font-size: 12px;
+}
+
+.receipt-big-amount strong {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #15803d;
+
+  font-size: 28px;
+}
+
+
+/* =========================================================
+   MODAL ACTIONS
+========================================================= */
+
+.receipt-modal-actions {
+  display: flex;
+
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 9px;
+
+  margin-top: 18px;
+}
+
+.receipt-cancel-btn,
+.receipt-print-btn,
+.receipt-whatsapp-btn {
+  min-height: 38px;
+
+  padding: 10px 15px;
+
+  border-radius: 8px;
+
+  font-size: 12px;
+
+  cursor: pointer;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  font-weight: 600;
+}
+
+.receipt-cancel-btn {
+  border: 1px solid #dce1e8;
+
+  background: white;
+
+  color: #475569;
+}
+
+.receipt-cancel-btn:hover {
+  background: #f8fafc;
+}
+
+.receipt-print-btn {
+  border: none;
+
+  background: #f59e0b;
+
+  color: white;
+}
+
+.receipt-print-btn:hover {
+  background: #d97706;
+}
+
+.receipt-whatsapp-btn {
+  border: 1px solid #bbf7d0;
+
+  background: #f0fdf4;
+
+  color: #15803d;
+}
+
+.receipt-whatsapp-btn:hover {
+  background: #dcfce7;
+}
+
+
+/* =========================================================
+   RESPONSIVE - TABLET
+========================================================= */
+
+@media (max-width: 1100px) {
+
+  .receipts-summary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .receipts-panel-header {
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 15px;
+  }
+
+  .receipts-filters {
+    width: 100%;
+
+    justify-content: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+  .receipts-search {
+    flex: 1 1 280px;
+
+    width: auto;
+  }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+========================================================= */
+
+@media (max-width: 650px) {
+
+  .receipts-header {
+    margin-bottom: 17px;
+  }
+
+  .receipts-header h1 {
+    font-size: 24px;
+  }
+
+  .receipts-header p {
+    font-size: 12px;
+  }
+
+
+  .receipts-summary {
+    grid-template-columns: 1fr;
+
+    gap: 10px;
+
+    margin-bottom: 16px;
+  }
+
+  .receipt-summary-card {
+    min-height: 76px;
+
+    padding: 14px 15px;
+  }
+
+
+  .receipts-panel-header {
+    padding: 15px;
+
+    gap: 13px;
+  }
+
+  .receipts-filters {
+    flex-direction: column;
+
+    align-items: stretch;
+
+    width: 100%;
+  }
+
+  .receipts-search,
+  .receipt-filter,
+  .receipt-date-filter {
+    width: 100%;
+
+    min-width: 0;
+
+    flex: none;
+  }
+
+
+  .receipts-table {
+    min-width: 900px;
+  }
+
+
+  .receipts-table th,
+  .receipts-table td {
+    padding: 11px 14px;
+  }
+
+
+  .receipt-modal {
+    max-width: 100%;
+
+    max-height: 94vh;
+
+    padding: 18px;
+
+    border-radius: 13px;
+  }
+
+  .receipt-preview {
+    padding: 18px;
+  }
+
+
+  .receipt-modal-actions {
+    flex-wrap: wrap;
+
+    justify-content: stretch;
+  }
+
+  .receipt-cancel-btn,
+  .receipt-print-btn,
+  .receipt-whatsapp-btn {
+    flex: 1;
+  }
+
+}
+/* =========================================================
+   RECEIPT NUMBER COLUMN ALIGNMENT FIX
+========================================================= */
+
+.receipts-table th:first-child,
+.receipts-table td:first-child {
+  text-align: left !important;
+  vertical-align: middle;
+}
+
+.receipts-table td:first-child .receipt-number {
+  display: block;
+  width: 100%;
+  text-align: left !important;
+}

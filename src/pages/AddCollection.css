@@ -1,0 +1,558 @@
+/* =========================================================
+   OVERLAY
+========================================================= */
+
+.add-collection-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 10000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    rgba(15, 23, 42, 0.58);
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.add-collection-modal {
+  width: 100%;
+  max-width: 560px;
+
+  max-height: 94vh;
+
+  overflow-y: auto;
+
+  padding: 24px;
+
+  background: #ffffff;
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 25px 70px
+    rgba(0, 0, 0, 0.25);
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.add-collection-header {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  margin-bottom: 24px;
+}
+
+
+.add-collection-header h2 {
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 21px;
+}
+
+
+.add-collection-header p {
+  margin: 5px 0 0;
+
+  color: #94a3b8;
+
+  font-size: 12px;
+}
+
+
+.add-collection-close {
+  width: 35px;
+  height: 35px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 9px;
+
+  background: #f1f5f9;
+
+  color: #475569;
+
+  cursor: pointer;
+}
+
+
+.add-collection-close:hover {
+  background: #e2e8f0;
+}
+
+
+/* =========================================================
+   FORM GROUP
+========================================================= */
+
+.add-form-group {
+  margin-bottom: 18px;
+}
+
+
+.add-form-group label {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  margin-bottom: 7px;
+
+  color: #334155;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+
+.add-form-group label span {
+  color: #dc2626;
+}
+
+
+/* =========================================================
+   INPUTS
+========================================================= */
+
+.add-form-group input,
+.add-form-group select,
+.add-form-group textarea {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  border: 1px solid #dce3eb;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #172033;
+
+  font-family: inherit;
+
+  font-size: 13px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.add-form-group input,
+.add-form-group select {
+  height: 43px;
+
+  padding: 0 12px;
+}
+
+
+.add-form-group textarea {
+  padding: 11px 12px;
+
+  resize: vertical;
+}
+
+
+.add-form-group input:focus,
+.add-form-group select:focus,
+.add-form-group textarea:focus {
+  outline: none;
+
+  border-color: #f59e0b;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(245, 158, 11, 0.12);
+}
+
+
+/* =========================================================
+   MEMBER PAYMENT INFO
+========================================================= */
+
+.member-payment-info {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 10px;
+
+  margin-bottom: 20px;
+
+  padding: 14px;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 11px;
+
+  background: #f8fafc;
+}
+
+
+.member-payment-info > div {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+
+.member-payment-info span {
+  color: #64748b;
+
+  font-size: 11px;
+}
+
+
+.member-payment-info strong {
+  color: #172033;
+
+  font-size: 14px;
+}
+
+
+.member-payment-info .remaining {
+  padding-left: 10px;
+
+  border-left: 2px solid #f59e0b;
+}
+
+
+.member-payment-info .remaining strong {
+  color: #d97706;
+}
+
+
+/* =========================================================
+   LABEL ROW
+========================================================= */
+
+.label-row {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+}
+
+
+.label-row label {
+  margin-bottom: 7px;
+}
+
+
+.full-amount-btn {
+  margin-bottom: 7px;
+
+  padding: 5px 9px;
+
+  border: 1px solid #fde68a;
+
+  border-radius: 6px;
+
+  background: #fffbeb;
+
+  color: #b45309;
+
+  font-size: 10px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+.full-amount-btn:hover {
+  background: #fef3c7;
+}
+
+
+/* =========================================================
+   AMOUNT
+========================================================= */
+
+.amount-input {
+  position: relative;
+}
+
+
+.amount-input > span {
+  position: absolute;
+
+  left: 13px;
+
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: #64748b;
+
+  font-size: 15px;
+
+  font-weight: 600;
+}
+
+
+.amount-input input {
+  padding-left: 32px !important;
+
+  font-size: 17px !important;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   PAYMENT MODE
+========================================================= */
+
+.payment-mode-options {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 9px;
+}
+
+
+.mode-option {
+  height: 42px;
+
+  display: flex !important;
+
+  align-items: center;
+
+  justify-content: center;
+
+  margin: 0 !important;
+
+  border: 1px solid #dce3eb;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #475569 !important;
+
+  cursor: pointer;
+
+  font-size: 12px !important;
+
+  font-weight: 600 !important;
+}
+
+
+.mode-option input {
+  display: none;
+}
+
+
+.mode-option.active {
+  border-color: #f59e0b;
+
+  background: #fffbeb;
+
+  color: #b45309 !important;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.collection-form-error {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin-bottom: 17px;
+
+  padding: 11px 13px;
+
+  border: 1px solid #fecaca;
+
+  border-radius: 8px;
+
+  background: #fef2f2;
+
+  color: #b91c1c;
+
+  font-size: 12px;
+
+  font-weight: 500;
+}
+
+
+.collection-form-error > span {
+  width: 18px;
+  height: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #dc2626;
+
+  color: #ffffff;
+
+  font-size: 11px;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.add-collection-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 9px;
+
+  padding-top: 5px;
+}
+
+
+.add-collection-cancel,
+.add-collection-save {
+  min-height: 43px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 10px 16px;
+
+  border-radius: 9px;
+
+  font-family: inherit;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+.add-collection-cancel {
+  border: 1px solid #dce3eb;
+
+  background: #ffffff;
+
+  color: #475569;
+}
+
+
+.add-collection-cancel:hover {
+  background: #f8fafc;
+}
+
+
+.add-collection-save {
+  border: 1px solid #f59e0b;
+
+  background: #f59e0b;
+
+  color: #ffffff;
+}
+
+
+.add-collection-save:hover {
+  background: #d97706;
+}
+
+
+.add-collection-save:disabled,
+.add-collection-cancel:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .add-collection-overlay {
+    padding: 10px;
+  }
+
+
+  .add-collection-modal {
+    padding: 18px;
+
+    border-radius: 14px;
+  }
+
+
+  .member-payment-info {
+    grid-template-columns: 1fr;
+  }
+
+
+  .member-payment-info .remaining {
+    padding-left: 0;
+
+    padding-top: 8px;
+
+    border-left: none;
+
+    border-top: 2px solid #f59e0b;
+  }
+
+
+  .payment-mode-options {
+    grid-template-columns: 1fr;
+  }
+
+
+  .add-collection-actions {
+    flex-direction: column-reverse;
+  }
+
+
+  .add-collection-cancel,
+  .add-collection-save {
+    width: 100%;
+  }
+
+}

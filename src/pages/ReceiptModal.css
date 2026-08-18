@@ -1,0 +1,689 @@
+/* =========================================================
+   RECEIPT OVERLAY
+========================================================= */
+
+.receipt-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(15, 23, 42, 0.58);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  z-index: 9999;
+
+  animation: receiptFadeIn 0.2s ease;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.receipt-modal {
+  width: 100%;
+  max-width: 565px;
+
+  max-height: 94vh;
+
+  overflow-y: auto;
+
+  background: #ffffff;
+
+  border-radius: 18px;
+
+  padding: 24px;
+
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.25);
+
+  animation: receiptSlideUp 0.25s ease;
+}
+
+
+/* =========================================================
+   MODAL HEADER
+========================================================= */
+
+.receipt-modal-header {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  margin-bottom: 18px;
+}
+
+
+.receipt-modal-header h2 {
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 22px;
+
+  font-weight: 700;
+}
+
+
+.receipt-modal-header p {
+  margin: 4px 0 0;
+
+  color: #94a3b8;
+
+  font-size: 12px;
+}
+
+
+.receipt-close {
+  width: 36px;
+  height: 36px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: #f1f5f9;
+
+  color: #475569;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+
+.receipt-close:hover {
+  background: #e2e8f0;
+
+  color: #172033;
+
+  transform: rotate(4deg);
+}
+
+
+/* =========================================================
+   RECEIPT PAPER
+========================================================= */
+
+.receipt-paper {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  border: 1px solid #dfe5ec;
+
+  border-radius: 12px;
+
+  padding: 26px;
+
+  background: #ffffff;
+}
+
+
+/* =========================================================
+   RECEIPT HEADING
+========================================================= */
+
+.receipt-heading {
+  text-align: center;
+
+  padding: 0 0 20px;
+
+  border-bottom: 2px solid #f59e0b;
+}
+
+
+.receipt-heading h1 {
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 24px;
+
+  font-weight: 700;
+
+  line-height: 1.35;
+}
+
+
+.receipt-heading p {
+  margin: 4px 0 0;
+
+  color: #64748b;
+
+  font-size: 13px;
+
+  line-height: 1.4;
+}
+
+
+.receipt-heading h2 {
+  margin: 7px 0 0;
+
+  color: #475569;
+
+  font-size: 17px;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   RECEIPT NUMBER
+========================================================= */
+
+.receipt-number {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: flex-end;
+
+  gap: 8px;
+
+  padding: 15px 0;
+
+  font-size: 12px;
+}
+
+
+.receipt-number span {
+  color: #64748b;
+}
+
+
+.receipt-number strong {
+  color: #172033;
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   DIVIDER
+========================================================= */
+
+.receipt-line {
+  width: 100%;
+
+  height: 1px;
+
+  background: #eef1f5;
+}
+
+
+/* =========================================================
+   RECEIPT ROW
+========================================================= */
+
+.receipt-row {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 25px;
+
+  min-height: 39px;
+
+  padding: 10px 0;
+
+  border-bottom: 1px solid #eef1f5;
+
+  font-size: 13px;
+}
+
+
+.receipt-row span {
+  color: #64748b;
+
+  flex-shrink: 0;
+}
+
+
+.receipt-row strong {
+  color: #172033;
+
+  font-weight: 600;
+
+  text-align: right;
+
+  word-break: break-word;
+}
+
+
+/* =========================================================
+   TOTAL
+========================================================= */
+
+.receipt-total {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-direction: column;
+
+  margin-top: 20px;
+
+  padding: 4px 0 0;
+}
+
+
+.receipt-total span {
+  color: #64748b;
+
+  font-size: 13px;
+
+  margin-bottom: 3px;
+}
+
+
+.receipt-total strong {
+  color: #15803d;
+
+  font-size: 30px;
+
+  line-height: 1.2;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   THANK YOU
+========================================================= */
+
+.receipt-thanks {
+  text-align: center;
+
+  margin-top: 22px;
+
+  color: #64748b;
+
+  font-size: 13px;
+
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.receipt-actions {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: flex-end;
+
+  gap: 9px;
+
+  margin-top: 18px;
+}
+
+
+.receipt-btn {
+  min-height: 44px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 10px 16px;
+
+  border-radius: 9px;
+
+  font-family: inherit;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border 0.2s ease,
+    transform 0.15s ease;
+}
+
+
+.receipt-btn:active {
+  transform: scale(0.97);
+}
+
+
+/* =========================================================
+   CLOSE BUTTON
+========================================================= */
+
+.receipt-btn.cancel {
+  border: 1px solid #dce3eb;
+
+  background: #ffffff;
+
+  color: #475569;
+}
+
+
+.receipt-btn.cancel:hover {
+  background: #f8fafc;
+
+  border-color: #cbd5e1;
+}
+
+
+/* =========================================================
+   PRINT BUTTON
+========================================================= */
+
+.receipt-btn.print {
+  border: 1px solid #f59e0b;
+
+  background: #f59e0b;
+
+  color: #ffffff;
+}
+
+
+.receipt-btn.print:hover {
+  background: #d97706;
+
+  border-color: #d97706;
+}
+
+
+/* =========================================================
+   WHATSAPP
+========================================================= */
+
+.receipt-btn.whatsapp {
+  border: 1px solid #bbf7d0;
+
+  background: #f0fdf4;
+
+  color: #15803d;
+}
+
+
+.receipt-btn.whatsapp:hover {
+  background: #dcfce7;
+
+  border-color: #86efac;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+.receipt-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+
+.receipt-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+.receipt-modal::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+
+  border-radius: 10px;
+}
+
+
+.receipt-modal::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+
+@keyframes receiptFadeIn {
+
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+
+}
+
+
+@keyframes receiptSlideUp {
+
+  from {
+    opacity: 0;
+
+    transform: translateY(15px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0) scale(1);
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .receipt-overlay {
+    padding: 10px;
+  }
+
+
+  .receipt-modal {
+    max-height: 96vh;
+
+    padding: 16px;
+
+    border-radius: 14px;
+  }
+
+
+  .receipt-modal-header h2 {
+    font-size: 19px;
+  }
+
+
+  .receipt-paper {
+    padding: 20px 17px;
+  }
+
+
+  .receipt-heading h1 {
+    font-size: 21px;
+  }
+
+
+  .receipt-heading h2 {
+    font-size: 16px;
+  }
+
+
+  .receipt-row {
+    font-size: 12px;
+
+    gap: 15px;
+  }
+
+
+  .receipt-total strong {
+    font-size: 27px;
+  }
+
+
+  .receipt-actions {
+    flex-direction: column;
+
+    width: 100%;
+  }
+
+
+  .receipt-btn {
+    width: 100%;
+  }
+
+}
+
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+
+  @page {
+    size: A4 portrait;
+
+    margin: 12mm;
+  }
+
+
+  html,
+  body {
+    margin: 0 !important;
+
+    padding: 0 !important;
+
+    background: #ffffff !important;
+  }
+
+
+  body * {
+    visibility: hidden !important;
+  }
+
+
+  .receipt-overlay,
+  .receipt-overlay * {
+    visibility: visible !important;
+  }
+
+
+  .receipt-overlay {
+    position: static !important;
+
+    inset: auto !important;
+
+    display: block !important;
+
+    padding: 0 !important;
+
+    margin: 0 !important;
+
+    background: #ffffff !important;
+  }
+
+
+  .receipt-modal {
+    position: static !important;
+
+    width: 100% !important;
+
+    max-width: none !important;
+
+    max-height: none !important;
+
+    overflow: visible !important;
+
+    padding: 0 !important;
+
+    margin: 0 !important;
+
+    border-radius: 0 !important;
+
+    box-shadow: none !important;
+  }
+
+
+  .receipt-modal-header,
+  .receipt-actions {
+    display: none !important;
+  }
+
+
+  .receipt-paper {
+    display: block !important;
+
+    width: 100% !important;
+
+    max-width: 170mm !important;
+
+    margin: 0 auto !important;
+
+    padding: 15mm !important;
+
+    border: 1px solid #dfe5ec !important;
+
+    border-radius: 0 !important;
+
+    box-shadow: none !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  .receipt-heading h1 {
+    font-size: 24px !important;
+  }
+
+
+  .receipt-heading p {
+    font-size: 13px !important;
+  }
+
+
+  .receipt-heading h2 {
+    font-size: 17px !important;
+  }
+
+
+  .receipt-row {
+    min-height: 36px !important;
+
+    padding: 9px 0 !important;
+  }
+
+
+  .receipt-total strong {
+    font-size: 28px !important;
+  }
+
+
+  .receipt-thanks {
+    margin-top: 18px !important;
+  }
+
+}
