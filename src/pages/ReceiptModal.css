@@ -726,15 +726,20 @@
   color: #2563eb;
   border: 1px solid #bfdbfe;
 }
+/* =========================================================
+   PREMIUM RECEIPT DESIGN
+========================================================= */
+
 .receipt-paper {
   width: 100%;
   max-width: 620px;
   margin: 0 auto;
+  box-sizing: border-box;
   padding: 28px;
   background: #fffdf8;
-  border: 2px solid #d4a017;
-  border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  border: 2px solid #c99a2e;
+  border-radius: 18px;
+  color: #2b2118;
   font-family:
     "Noto Sans Devanagari",
     "Nirmala UI",
@@ -745,12 +750,12 @@
 .receipt-heading {
   text-align: center;
   padding-bottom: 18px;
-  border-bottom: 2px solid #d4a017;
+  border-bottom: 2px solid #c99a2e;
 }
 
 .receipt-logo {
-  width: 105px;
-  height: 105px;
+  width: 100px;
+  height: 100px;
   object-fit: contain;
   display: block;
   margin: 0 auto 8px;
@@ -758,93 +763,165 @@
 
 .receipt-heading h1 {
   margin: 0;
+  color: #8b1e1e;
   font-size: 25px;
   font-weight: 800;
-  color: #8f1717;
+  line-height: 1.35;
 }
 
 .receipt-heading p {
   margin: 4px 0;
-  font-size: 15px;
-  color: #555;
+  color: #6b4b2a;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .receipt-tagline {
-  font-weight: 600;
   color: #a16207 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
 }
 
 .receipt-title {
   display: inline-block;
   margin-top: 12px;
-  padding: 7px 24px;
-  border-radius: 20px;
-  background: #8f1717;
-  color: white;
-  font-size: 19px;
+  padding: 7px 28px;
+  background: #8b1e1e;
+  color: #ffffff;
+  border-radius: 22px;
+  font-size: 18px;
   font-weight: 800;
 }
+
+/* Receipt number */
 
 .receipt-number {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 18px 0 8px;
-  padding: 10px 14px;
-  background: #fff4cf;
-  border-radius: 8px;
-  font-size: 14px;
+  margin: 18px 0 5px;
+  padding: 11px 14px;
+  background: #fff3cf;
+  border: 1px solid #e4c66a;
+  border-radius: 9px;
+}
+
+.receipt-number span {
+  color: #705b43;
 }
 
 .receipt-number strong {
-  color: #8f1717;
+  color: #8b1e1e;
+  font-size: 13px;
 }
+
+/* Receipt details */
 
 .receipt-row {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 20px;
   padding: 11px 5px;
-  border-bottom: 1px dashed #ddd;
+  border-bottom: 1px dashed #d8cdbd;
   font-size: 14px;
 }
 
 .receipt-row span {
-  color: #666;
+  color: #756653;
+  flex-shrink: 0;
 }
 
 .receipt-row strong {
-  color: #222;
+  color: #2b2118;
+  font-weight: 700;
   text-align: right;
+  word-break: break-word;
+  max-width: 70%;
 }
+
+/* Total */
 
 .receipt-total {
   margin-top: 22px;
-  padding: 16px;
+  padding: 17px;
   text-align: center;
-  background: #fff4cf;
-  border: 1px solid #e2b93b;
+  background: #fff3cf;
+  border: 1px solid #d7b54c;
   border-radius: 12px;
 }
 
 .receipt-total span {
   display: block;
+  color: #705b43;
   font-size: 14px;
-  color: #555;
 }
 
 .receipt-total strong {
   display: block;
-  margin-top: 5px;
+  margin-top: 4px;
+  color: #8b1e1e;
   font-size: 32px;
-  color: #8f1717;
   font-weight: 900;
 }
+
+/* Footer */
 
 .receipt-thanks {
   margin-top: 20px;
   text-align: center;
+  color: #756653;
   font-size: 14px;
-  color: #555;
-  line-height: 1.6;
+  line-height: 1.7;
+}
+
+.receipt-thanks::before {
+  content: "श्री गणेशाय नमः";
+  display: block;
+  margin-bottom: 6px;
+  color: #8b1e1e;
+  font-weight: 700;
+}
+
+/* =========================================================
+   MOBILE RECEIPT
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .receipt-paper {
+    padding: 20px 17px;
+    border-radius: 14px;
+  }
+
+  .receipt-logo {
+    width: 85px;
+    height: 85px;
+  }
+
+  .receipt-heading h1 {
+    font-size: 21px;
+  }
+
+  .receipt-heading p {
+    font-size: 14px;
+  }
+
+  .receipt-title {
+    font-size: 16px;
+    padding: 6px 22px;
+  }
+
+  .receipt-row {
+    font-size: 12px;
+    gap: 15px;
+  }
+
+  .receipt-row strong {
+    max-width: 65%;
+  }
+
+  .receipt-total strong {
+    font-size: 27px;
+  }
 }

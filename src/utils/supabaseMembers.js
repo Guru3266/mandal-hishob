@@ -215,14 +215,30 @@ expected_amount: Number(updates.expected || 0),
 // ============================================================
 
 export const deleteMemberFromSupabase = async (memberId) => {
-  const { error } = await supabase
+  const { error: collectionError } = await supabase
+    .from("collections")
+    .delete()
+    .eq("member_id", memberId);
+
+  if (collectionError) {
+    console.error(
+      "Member collections delete error:",
+      collectionError
+    );
+    throw collectionError;
+  }
+
+  const { error: memberError } = await supabase
     .from("members")
     .delete()
     .eq("id", memberId);
 
-  if (error) {
-    console.error("Member delete error:", error);
-    throw error;
+  if (memberError) {
+    console.error(
+      "Member delete error:",
+      memberError
+    );
+    throw memberError;
   }
 
   return true;

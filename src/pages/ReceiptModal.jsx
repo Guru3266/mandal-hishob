@@ -262,7 +262,6 @@ function ReceiptModal({
   // ============================================================
   // WHATSAPP
   // ============================================================
-
 const sendWhatsApp = async () => {
   const cleanPhone = String(mobile || "").replace(/\D/g, "");
 
@@ -281,21 +280,30 @@ const sendWhatsApp = async () => {
   }
 
   try {
+    // 1️⃣ Create receipt image
     const canvas = await html2canvas(receiptElement, {
       scale: 3,
       useCORS: true,
-      backgroundColor: "#ffffff",
+      allowTaint: false,
+      backgroundColor: "#fffdf8",
       logging: false,
     });
 
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, "image/png", 1)
-    );
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (result) => {
+          if (result) {
+            resolve(result);
+          } else {
+            reject(new Error("Receipt image तयार झाली नाही."));
+          }
+        },
+        "image/png",
+        1
+      );
+    });
 
-    if (!blob) {
-      throw new Error("Receipt image तयार झाली नाही.");
-    }
-
+    // 2️⃣ Convert image to File
     const file = new File(
       [blob],
       `${receiptNo}-receipt.png`,
@@ -304,37 +312,105 @@ const sendWhatsApp = async () => {
       }
     );
 
-    const whatsappText = `🙏 ${mandalName}
+    // 3️⃣ WhatsApp message
+    const whatsappText = `🙏 लक्ष्मी तरुण मित्र मंडळ, गणोरे 🙏
 
-${tagline}
+🪔 गणपती उत्सव २०२६ 🪔
 
-जमा पावती: ${receiptNo}
+━━━━━━━━━━━━━━━━━━
 
-वर्गणीदार: ${memberName}
-जमा रक्कम: ₹${formattedAmount}
-Payment Mode: ${mode}
-दिनांक: ${date}
+🧾 *जमा पावती*
 
-${mandalName} च्या वतीने धन्यवाद 🙏`;
+🔖 पावती क्र.: *${receiptNo}*
 
-    // Mobile / supported browser
-    if (
-      navigator.share &&
-      navigator.canShare &&
-      navigator.canShare({
-        files: [file],
-      })
-    ) {
-      await navigator.share({
-        title: `जमा पावती - ${receiptNo}`,
-        text: whatsappText,
-        files: [file],
-      });
+👤 वर्गणीदार: *${memberName}*
+🆔 Member ID: *${memberId}*
+📱 Mobile: *${mobile}*
 
-      return;
+💰 जमा रक्कम: *₹${formattedAmount}*
+💳 Payment Mode: *${mode}*
+📅 दिनांक: *${date}*
+📝 Remark: *${remark || "-"}*
+
+━━━━━━━━━━━━━━━━━━
+
+✅ *आपली वर्गणी यशस्वीरित्या जमा झाली आहे.*
+
+लक्ष्मी तरुण मित्र मंडळ, गणोरे
+यांच्या वतीने मनःपूर्वक धन्यवाद! 🙏
+
+🕉️ श्री गणेशाय नमः 🕉️
+🌺 गणपती बाप्पा मोरया! 🌺`;
+
+    // =====================================================
+    // 📱 MOBILE — SHARE DESIGNED RECEIPT IMAGE
+    // =====================================================
+
+    if (navigator.share) {
+      try {
+        // Check file sharing support
+        if (
+          navigator.canShare &&
+          navigator.canShare({
+            files: [file],
+          })
+        ) {
+          await navigator.share({
+            title: `जमा पावती - ${receiptNo}`,
+            text: whatsappText,
+            files: [file],
+          });
+
+          return;
+        }
+
+        // Try file sharing directly even if canShare
+        // is not available
+        await navigator.share({
+          title: `जमा पावती - ${receiptNo}`,
+          text: whatsappText,
+          files: [file],
+        });
+
+        return;
+
+      } catch (shareError) {
+
+        // User cancelled share
+        if (shareError?.name === "AbortError") {
+          return;
+        }
+
+        console.log(
+          "File share not supported:",
+          shareError
+        );
+      }
     }
 
-    // Desktop / fallback
+    // =====================================================
+    // 💻 DESKTOP FALLBACK
+    // =====================================================
+
+    // Download designed receipt image
+    const imageUrl = URL.createObjectURL(blob);
+
+    const downloadLink =
+      document.createElement("a");
+
+    downloadLink.href = imageUrl;
+    downloadLink.download =
+      `${receiptNo}-receipt.png`;
+
+    document.body.appendChild(downloadLink);
+
+    downloadLink.click();
+
+    document.body.removeChild(downloadLink);
+
+    URL.revokeObjectURL(imageUrl);
+
+    // Open WhatsApp with text
     const whatsappUrl =
       `https://wa.me/91${cleanPhone}?text=` +
       encodeURIComponent(whatsappText);
@@ -346,16 +422,19 @@ ${mandalName} च्या वतीने धन्यवाद 🙏`;
     );
 
     alert(
-      "Receipt image तयार आहे. Desktop वर WhatsApp मध्ये image manually attach करा."
+      "Receipt image download झाली आहे. WhatsApp मध्ये ती attach करा."
     );
+
   } catch (error) {
-    if (error?.name === "AbortError") {
-      return;
-    }
 
-    console.error("WhatsApp receipt error:", error);
+    console.error(
+      "WhatsApp receipt error:",
+      error
+    );
 
-    alert("WhatsApp receipt तयार करताना समस्या आली.");
+    alert(
+      "WhatsApp receipt तयार करताना समस्या आली."
+    );
   }
 };
 

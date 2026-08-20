@@ -20,6 +20,8 @@ import {
   deleteMemberFromSupabase,
 } from "../utils/supabaseMembers";
 
+
+
 import "./Members.css";
 
 
@@ -428,37 +430,35 @@ function Members() {
   ===================================================== */
 
   const handleDelete = async (member) => {
+  const confirmed = window.confirm(
+    `${member.name} हा वर्गणीदार आणि त्याच्या सर्व जमा पावत्या delete करायच्या आहेत का?`
+  );
 
-    const confirmed =
-      window.confirm(
-        `${member.name} हा वर्गणीदार delete करायचा आहे का?`
-      );
+  if (!confirmed) {
+    return;
+  }
 
+  try {
+    await deleteMemberFromSupabase(member.id);
 
-    if (!confirmed) {
-      return;
-    }
+    await loadMembers();
 
+    alert(
+      "वर्गणीदार आणि त्याच्या सर्व जमा पावत्या delete झाल्या."
+    );
 
-    try {
+  } catch (error) {
+    console.error(
+      "Member delete error:",
+      error
+    );
 
-     await deleteMemberFromSupabase(member.id);
-await loadMembers();
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-      alert(
-        "Member delete करताना error आला."
-      );
-
-    }
-
-  };
-
+    alert(
+      error?.message ||
+      "Member delete करताना error आला."
+    );
+  }
+};
 
   /* =====================================================
      FORMAT MONEY

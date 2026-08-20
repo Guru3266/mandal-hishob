@@ -976,94 +976,80 @@ function Receipts() {
   // WHATSAPP
   // ============================================================
 
-  const sendWhatsApp = (
-    receipt
-  ) => {
+ const sendWhatsApp = (receipt) => {
+  const mobile = receipt.mobile || "";
 
-    const mobile =
-      receipt.mobile || "";
+  const phone = String(mobile).replace(/\D/g, "");
 
-    const phone =
-      String(mobile)
-        .replace(/\D/g, "");
-
-    if (phone.length !== 10) {
-
-      alert(
-        "या वर्गणीदाराचा valid 10 अंकी mobile number उपलब्ध नाही."
-      );
-
-      return;
-    }
-
-    const message = `
-
-🙏 ${mandalName}
-
-${mandalTagline}
-
-${
-  mandalConfig?.address
-    ? `पत्ता: ${mandalConfig.address}`
-    : ""
-}
-
-🧾 जमा पावती
-
-पावती क्र.: ${
-      receipt.receiptNo ||
-      receipt.id ||
-      "-"
-    }
-
-वर्गणीदार: ${
-      receipt.memberName ||
-      "-"
-    }
-
-Member ID: ${
-      receipt.memberId ||
-      "-"
-    }
-
-Mobile: ${mobile}
-
-जमा रक्कम: ₹${money(
-      receipt.amount
-    )}
-
-Payment Mode: ${
-      receipt.mode ||
-      "-"
-    }
-
-Date: ${
-      formatDate(
-        receipt.date
-      )
-    }
-
-Remark: ${
-      receipt.remark ||
-      "-"
-    }
-
-${mandalName} च्या वतीने धन्यवाद 🙏
-
-    `.trim();
-
-    const url =
-      `https://wa.me/91${phone}?text=${encodeURIComponent(
-        message
-      )}`;
-
-    window.open(
-      url,
-      "_blank",
-      "noopener,noreferrer"
+  if (phone.length !== 10) {
+    alert(
+      "या वर्गणीदाराचा valid 10 अंकी mobile number उपलब्ध नाही."
     );
+    return;
+  }
 
-  };
+  const receiptNo =
+    receipt.receiptNo ||
+    receipt.id ||
+    "-";
+
+  const memberName =
+    receipt.memberName ||
+    "-";
+
+  const memberCode =
+    receipt.memberCode ||
+    receipt.memberId ||
+    "-";
+
+  const paymentMode =
+    receipt.mode ||
+    "-";
+
+  const remark =
+    receipt.remark ||
+    "-";
+
+  const message = `लक्ष्मी तरुण मित्र मंडळ, गणोरे.
+
+गणपती उत्सव २०२६
+
+━━━━━━━━━━━━━━━━━━
+
+जमा पावती
+
+पावती क्र.: ${receiptNo}
+
+वर्गणीदार: ${memberName}
+Member ID: ${memberCode}
+मोबाईल: ${mobile}
+
+जमा रक्कम: ₹${money(receipt.amount)}
+Payment Mode: ${paymentMode}
+दिनांक: ${formatDate(receipt.date)}
+Remark: ${remark}
+
+━━━━━━━━━━━━━━━━━━
+
+आपली वर्गणी यशस्वीरित्या जमा झाली आहे.
+
+लक्ष्मी तरुण मित्र मंडळ, गणोरे
+यांच्या वतीने मनःपूर्वक धन्यवाद!
+
+श्री गणेशाय नमः
+गणपती बाप्पा मोरया!`;
+
+  const url =
+    `https://wa.me/91${phone}?text=${encodeURIComponent(
+      message
+    )}`;
+
+  window.open(
+    url,
+    "_blank",
+    "noopener,noreferrer"
+  );
+};
 
   // ============================================================
   // RENDER
