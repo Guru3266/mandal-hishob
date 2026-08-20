@@ -1,173 +1,282 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   X,
   Printer,
   MessageCircle,
+  Download,
+  Share2,
 } from "lucide-react";
 
-import { getMandalConfig } from "../utils/mandalConfig";
+import useMandalConfig from "../hooks/useMandalConfig";
+
+
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 import "./ReceiptModal.css";
 
-
 function ReceiptModal({
+  receipt,
   payment,
   onClose,
 }) {
+  // ============================================================
+  // SUPPORT receipt / payment
+  // ============================================================
 
-  // =====================================================
+  const data = receipt || payment;
+
+  // ============================================================
   // MANDAL CONFIG
-  // =====================================================
+  // ============================================================
 
-  const [mandalConfig, setMandalConfig] = useState(
-    getMandalConfig()
-  );
+  const mandalConfig =
+    useMandalConfig();
 
+  // ============================================================
+  // SAFETY
+  // ============================================================
 
-  useEffect(() => {
-
-    const loadConfig = () => {
-      setMandalConfig(
-        getMandalConfig()
-      );
-    };
-
-
-    loadConfig();
-
-
-    window.addEventListener(
-      "mandal-data-updated",
-      loadConfig
-    );
-
-
-    return () => {
-
-      window.removeEventListener(
-        "mandal-data-updated",
-        loadConfig
-      );
-
-    };
-
-  }, []);
-
-
-  // =====================================================
-  // SAFETY CHECK
-  // =====================================================
-
-  if (!payment) {
+  if (!data) {
     return null;
   }
 
-
-  // =====================================================
-  // MANDAL DATA
-  // =====================================================
+  // ============================================================
+  // CONFIG
+  // ============================================================
 
   const mandalName =
     mandalConfig?.name ||
     "लक्ष्मी तरुण मित्र मंडळ";
 
-
   const tagline =
     mandalConfig?.tagline ||
-    "गणपती उत्सव 2026";
-
+    "गणपती उत्सव 2027";
 
   const address =
     mandalConfig?.address ||
     "";
 
+  const mandalMobile =
+    mandalConfig?.mobile ||
+    "";
 
-  // =====================================================
-  // PAYMENT DATA
-  // =====================================================
+  const upiId =
+    mandalConfig?.upiId ||
+    "";
+
+  // ============================================================
+  // DATE FORMAT
+  // ============================================================
+
+  const formatReceiptDate = (
+    value
+  ) => {
+    if (!value) {
+      return "-";
+    }
+
+    const dateString =
+      String(value).trim();
+
+    // YYYY-MM-DD
+    if (
+      /^\d{4}-\d{2}-\d{2}$/.test(
+        dateString
+      )
+    ) {
+      const [
+        year,
+        month,
+        day,
+      ] = dateString.split("-");
+
+      return `${day}-${month}-${year}`;
+    }
+
+    // ISO
+    if (
+      /^\d{4}-\d{2}-\d{2}T/.test(
+        dateString
+      )
+    ) {
+      const datePart =
+        dateString.slice(0, 10);
+
+      const [
+        year,
+        month,
+        day,
+      ] = datePart.split("-");
+
+      return `${day}-${month}-${year}`;
+    }
+
+    return dateString;
+  };
+
+  // ============================================================
+  // MEMBER DETAILS
+  // ============================================================
 
   const memberName =
-    payment?.memberName ||
-    payment?.member?.name ||
+    data?.memberName ||
+    data?.member?.name ||
     "-";
-
 
   const memberId =
-    payment?.memberId ||
-    payment?.member?.memberId ||
-    payment?.member?.id ||
+    data?.displayMemberId ||
+    data?.memberCode ||
+    data?.member_code ||
+    data?.member?.member_code ||
     "-";
-
 
   const mobile =
-    payment?.mobile ||
-    payment?.member?.mobile ||
+    data?.mobile ||
+    data?.member?.mobile ||
     "";
 
+  // ============================================================
+  // PAYMENT DETAILS
+  // ============================================================
 
   const amount =
-    Number(payment?.amount) || 0;
-
+    Number(data?.amount) || 0;
 
   const mode =
-    payment?.mode ||
+    data?.mode ||
     "Cash";
 
-
   const date =
-    payment?.date ||
-    "-";
-
+    formatReceiptDate(
+      data?.date ||
+        data?.payment_date ||
+        data?.createdAt ||
+        data?.created_at
+    );
 
   const remark =
-    payment?.remark ||
-    "";
-
-
-  // =====================================================
-  // RECEIPT NUMBER
-  // =====================================================
-
-  const receiptNo =
-    payment?.receiptNo ||
-    payment?.receiptNumber ||
-    payment?.receipt_id ||
-    payment?.receiptId ||
-    payment?.id ||
+    data?.remark ||
     "-";
 
-
-  // =====================================================
-  // FORMAT AMOUNT
-  // =====================================================
+  const receiptNo =
+    data?.receiptNo ||
+    data?.receiptNumber ||
+    data?.receipt_no ||
+    "-";
 
   const formattedAmount =
-    amount.toLocaleString("en-IN");
+    amount.toLocaleString(
+      "en-IN"
+    );
 
+  // ============================================================
+  // DOWNLOAD PDF
+  // ============================================================
 
-  // =====================================================
+  const handleDownloadPDF =
+    async () => {
+      const receiptElement =
+        document.getElementById(
+          "receipt-print-area"
+        );
+
+      if (!receiptElement) {
+        alert(
+          "Receipt not found."
+        );
+
+        return;
+      }
+
+      try {
+        const canvas =
+          await html2canvas(
+            receiptElement,
+            {
+              scale: 2,
+              useCORS: true,
+              backgroundColor:
+                "#ffffff",
+            }
+          );
+
+        const imageData =
+          canvas.toDataURL(
+            "image/png"
+          );
+
+        const pdf =
+          new jsPDF({
+            orientation:
+              "portrait",
+            unit: "mm",
+            format: "a5",
+          });
+
+        const pageWidth = 148;
+        const pageHeight = 210;
+        const margin = 8;
+
+        const usableWidth =
+          pageWidth -
+          margin * 2;
+
+        const imageHeight =
+          (canvas.height *
+            usableWidth) /
+          canvas.width;
+
+        const finalHeight =
+          Math.min(
+            imageHeight,
+            pageHeight -
+              margin * 2
+          );
+
+        pdf.addImage(
+          imageData,
+          "PNG",
+          margin,
+          margin,
+          usableWidth,
+          finalHeight
+        );
+
+        pdf.save(
+          `${receiptNo}.pdf`
+        );
+      } catch (error) {
+        console.error(
+          "PDF generation error:",
+          error
+        );
+
+        alert(
+          "PDF तयार करताना समस्या आली."
+        );
+      }
+    };
+
+  // ============================================================
   // WHATSAPP
-  // =====================================================
+  // ============================================================
 
   const sendWhatsApp = () => {
-
     const cleanPhone =
-      String(mobile).replace(
-        /\D/g,
-        ""
-      );
+      String(mobile)
+        .replace(/\D/g, "");
 
-
-    if (cleanPhone.length !== 10) {
-
+    if (
+      cleanPhone.length !== 10
+    ) {
       alert(
         "या वर्गणीदाराचा valid 10 अंकी mobile number उपलब्ध नाही."
       );
 
       return;
     }
-
 
     const message = `
 🙏 ${mandalName}
@@ -186,51 +295,170 @@ Mobile: ${mobile}
 Payment Mode: ${mode}
 दिनांक: ${date}
 
-${remark ? `Remark: ${remark}` : ""}
+Remark: ${remark}
 
-धन्यवाद! 🙏
+${address ? `📍 ${address}` : ""}
 
-${mandalName}
-${address}
+${
+  mandalMobile
+    ? `📞 ${mandalMobile}`
+    : ""
+}
+
+${
+  upiId
+    ? `💳 UPI: ${upiId}`
+    : ""
+}
+
+${mandalName} च्या वतीने धन्यवाद 🙏
     `.trim();
-
 
     const whatsappUrl =
       `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
         message
       )}`;
 
-
     window.open(
       whatsappUrl,
       "_blank",
       "noopener,noreferrer"
     );
-
   };
 
+  // ============================================================
+  // SHARE
+  // ============================================================
 
-  // =====================================================
-  // PRINT RECEIPT
-  // =====================================================
+  const handleShare = async () => {
+    const receiptElement =
+      document.getElementById(
+        "receipt-print-area"
+      );
+
+    if (!receiptElement) {
+      return;
+    }
+
+    try {
+      const canvas =
+        await html2canvas(
+          receiptElement,
+          {
+            scale: 2,
+            useCORS: true,
+            backgroundColor:
+              "#ffffff",
+          }
+        );
+
+      const imageData =
+        canvas.toDataURL(
+          "image/png"
+        );
+
+      const pdf =
+        new jsPDF({
+          orientation:
+            "portrait",
+          unit: "mm",
+          format: "a5",
+        });
+
+      const margin = 8;
+      const usableWidth =
+        148 - margin * 2;
+
+      const imageHeight =
+        (canvas.height *
+          usableWidth) /
+        canvas.width;
+
+      pdf.addImage(
+        imageData,
+        "PNG",
+        margin,
+        margin,
+        usableWidth,
+        imageHeight
+      );
+
+      const pdfBlob =
+        pdf.output("blob");
+
+      const pdfFile =
+        new File(
+          [pdfBlob],
+          `${receiptNo}.pdf`,
+          {
+            type:
+              "application/pdf",
+          }
+        );
+
+      if (
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({
+          files: [pdfFile],
+        })
+      ) {
+        await navigator.share({
+          title:
+            `जमा पावती - ${receiptNo}`,
+
+          text:
+            `${mandalName} - जमा पावती`,
+
+          files: [pdfFile],
+        });
+
+        return;
+      }
+
+      pdf.save(
+        `${receiptNo}.pdf`
+      );
+
+      alert(
+        "PDF download झाला आहे."
+      );
+    } catch (error) {
+      if (
+        error?.name ===
+        "AbortError"
+      ) {
+        return;
+      }
+
+      console.error(
+        "Share error:",
+        error
+      );
+
+      alert(
+        "Share करताना समस्या आली."
+      );
+    }
+  };
+
+  // ============================================================
+  // PRINT
+  // ============================================================
 
   const printReceipt = () => {
-
     const printContent =
       document.querySelector(
         ".receipt-paper"
       );
 
-
     if (!printContent) {
-
       alert(
         "Receipt content सापडले नाही."
       );
 
       return;
     }
-
 
     const printWindow =
       window.open(
@@ -239,9 +467,7 @@ ${address}
         "width=800,height=900"
       );
 
-
     if (!printWindow) {
-
       alert(
         "Print window blocked आहे. Browser मध्ये pop-up allow करा."
       );
@@ -249,12 +475,7 @@ ${address}
       return;
     }
 
-
-    printWindow.document.open();
-
-
     printWindow.document.write(`
-
       <!DOCTYPE html>
 
       <html lang="mr">
@@ -263,15 +484,9 @@ ${address}
 
         <meta charset="UTF-8" />
 
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1.0"
-        />
-
         <title>
-          ${mandalName} - Receipt ${receiptNo}
+          Receipt ${receiptNo}
         </title>
-
 
         <style>
 
@@ -279,23 +494,19 @@ ${address}
             box-sizing: border-box;
           }
 
-
           @page {
             size: A5 portrait;
-            margin: 10mm;
+            margin: 8mm;
           }
-
 
           html,
           body {
             margin: 0;
             padding: 0;
-            background: #ffffff;
+            background: white;
           }
 
-
           body {
-
             font-family:
               Arial,
               "Noto Sans Devanagari",
@@ -305,193 +516,100 @@ ${address}
             color: #172033;
           }
 
-
           .receipt-paper {
-
             width: 100%;
-
             max-width: 600px;
-
             margin: 0 auto;
-
             padding: 25px;
-
-            background: #ffffff;
-
-            border:
-              1px solid #dfe4ea;
-
+            background: white;
+            border: 1px solid #dfe4ea;
             border-radius: 10px;
           }
 
-
           .receipt-heading {
-
             text-align: center;
-
             padding-bottom: 18px;
-
-            border-bottom:
-              2px solid #f59e0b;
+            border-bottom: 2px solid #f59e0b;
           }
-
 
           .receipt-heading h1 {
-
             margin: 0;
-
             font-size: 25px;
-
-            font-weight: 700;
           }
 
-
           .receipt-heading p {
-
             margin: 5px 0;
-
             color: #64748b;
-
             font-size: 14px;
           }
 
-
           .receipt-heading h2 {
-
             margin: 8px 0 0;
-
             font-size: 20px;
           }
 
-
           .receipt-number {
-
             display: flex;
-
             justify-content: flex-end;
-
             gap: 8px;
-
             padding: 15px 0;
-
             font-size: 13px;
           }
 
-
           .receipt-number span {
-
             color: #64748b;
           }
-
-
-          .receipt-number strong {
-
-            color: #172033;
-          }
-
 
           .receipt-row {
-
             display: flex;
-
-            justify-content:
-              space-between;
-
-            align-items: center;
-
+            justify-content: space-between;
             gap: 20px;
-
             padding: 12px 0;
-
-            border-bottom:
-              1px solid #e5e7eb;
-
+            border-bottom: 1px solid #e5e7eb;
             font-size: 14px;
           }
-
 
           .receipt-row span {
-
             color: #64748b;
           }
-
 
           .receipt-row strong {
-
             text-align: right;
-
-            color: #172033;
+            word-break: break-word;
           }
-
 
           .receipt-total {
-
             text-align: center;
-
             margin-top: 25px;
           }
-
 
           .receipt-total span {
-
             display: block;
-
             color: #64748b;
-
             font-size: 14px;
           }
-
 
           .receipt-total strong {
-
             display: block;
-
             margin-top: 5px;
-
             color: #15803d;
-
             font-size: 34px;
-
-            font-weight: 700;
           }
-
 
           .receipt-thanks {
-
             text-align: center;
-
             margin-top: 25px;
-
             color: #64748b;
-
             font-size: 14px;
-          }
-
-
-          @media print {
-
-            body {
-              -webkit-print-color-adjust:
-                exact;
-              print-color-adjust:
-                exact;
-            }
-
-            .receipt-paper {
-              border: 1px solid #dfe4ea;
-            }
-
           }
 
         </style>
 
       </head>
 
-
       <body>
 
         ${printContent.outerHTML}
-
 
         <script>
 
@@ -506,7 +624,6 @@ ${address}
             }, 500);
 
           };
-
 
           window.onafterprint = function () {
 
@@ -523,41 +640,30 @@ ${address}
       </body>
 
       </html>
-
     `);
 
-
     printWindow.document.close();
-
   };
 
+  // ============================================================
+  // OVERLAY
+  // ============================================================
 
-  // =====================================================
-  // CLOSE OVERLAY
-  // =====================================================
+  const handleOverlayClick =
+    (event) => {
+      if (
+        event.target ===
+        event.currentTarget
+      ) {
+        onClose();
+      }
+    };
 
-  const handleOverlayClick = (
-    event
-  ) => {
-
-    if (
-      event.target ===
-      event.currentTarget
-    ) {
-
-      onClose();
-
-    }
-
-  };
-
-
-  // =====================================================
+  // ============================================================
   // RENDER
-  // =====================================================
+  // ============================================================
 
   return (
-
     <div
       className="receipt-overlay"
       onMouseDown={
@@ -572,16 +678,11 @@ ${address}
         }
       >
 
-        {/* =================================================
-            MODAL HEADER
-        ================================================= */}
+        {/* HEADER */}
 
-        <div
-          className="receipt-modal-header"
-        >
+        <div className="receipt-modal-header">
 
           <div>
-
             <h2>
               जमा पावती
             </h2>
@@ -589,37 +690,26 @@ ${address}
             <p>
               {mandalName}
             </p>
-
           </div>
-
 
           <button
             type="button"
             className="receipt-close"
             onClick={onClose}
-            aria-label="Close receipt"
           >
-
             <X size={20} />
-
           </button>
 
         </div>
 
+        {/* RECEIPT */}
 
-        {/* =================================================
-            RECEIPT PAPER
-        ================================================= */}
+        <div
+          className="receipt-paper"
+          id="receipt-print-area"
+        >
 
-        <div className="receipt-paper">
-
-          {/* =================================================
-              MANDAL HEADER
-          ================================================= */}
-
-          <div
-            className="receipt-heading"
-          >
+          <div className="receipt-heading">
 
             <div
               style={{
@@ -630,20 +720,15 @@ ${address}
               🙏
             </div>
 
-
             <h1>
               {mandalName}
             </h1>
 
-
             {tagline && (
-
               <p>
                 {tagline}
               </p>
-
             )}
-
 
             <h2>
               जमा पावती
@@ -651,14 +736,9 @@ ${address}
 
           </div>
 
+          {/* RECEIPT NUMBER */}
 
-          {/* =================================================
-              RECEIPT NUMBER
-          ================================================= */}
-
-          <div
-            className="receipt-number"
-          >
+          <div className="receipt-number">
 
             <span>
               Receipt No.
@@ -670,15 +750,9 @@ ${address}
 
           </div>
 
+          {/* MEMBER */}
 
-          {/* =================================================
-              MEMBER
-          ================================================= */}
-
-          <div
-            className="receipt-row"
-          >
-
+          <div className="receipt-row">
             <span>
               वर्गणीदार
             </span>
@@ -686,18 +760,11 @@ ${address}
             <strong>
               {memberName}
             </strong>
-
           </div>
 
+          {/* MEMBER ID */}
 
-          {/* =================================================
-              MEMBER ID
-          ================================================= */}
-
-          <div
-            className="receipt-row"
-          >
-
+          <div className="receipt-row">
             <span>
               Member ID
             </span>
@@ -705,18 +772,11 @@ ${address}
             <strong>
               {memberId}
             </strong>
-
           </div>
 
+          {/* MOBILE */}
 
-          {/* =================================================
-              MOBILE
-          ================================================= */}
-
-          <div
-            className="receipt-row"
-          >
-
+          <div className="receipt-row">
             <span>
               Mobile
             </span>
@@ -724,18 +784,23 @@ ${address}
             <strong>
               {mobile || "-"}
             </strong>
-
           </div>
 
+          {/* AMOUNT */}
 
-          {/* =================================================
-              PAYMENT MODE
-          ================================================= */}
+          <div className="receipt-row">
+            <span>
+              जमा रक्कम
+            </span>
 
-          <div
-            className="receipt-row"
-          >
+            <strong>
+              ₹{formattedAmount}
+            </strong>
+          </div>
 
+          {/* MODE */}
+
+          <div className="receipt-row">
             <span>
               Payment Mode
             </span>
@@ -743,18 +808,11 @@ ${address}
             <strong>
               {mode}
             </strong>
-
           </div>
 
+          {/* DATE */}
 
-          {/* =================================================
-              DATE
-          ================================================= */}
-
-          <div
-            className="receipt-row"
-          >
-
+          <div className="receipt-row">
             <span>
               Date
             </span>
@@ -762,39 +820,40 @@ ${address}
             <strong>
               {date}
             </strong>
-
           </div>
 
+          {/* REMARK */}
 
-          {/* =================================================
-              REMARK
-          ================================================= */}
-
-          <div
-            className="receipt-row"
-          >
-
+          <div className="receipt-row">
             <span>
               Remark
             </span>
 
             <strong>
-              {remark || "-"}
+              {remark}
             </strong>
-
           </div>
 
+          {/* UPI */}
 
-          {/* =================================================
-              AMOUNT
-          ================================================= */}
+          {upiId && (
+            <div className="receipt-row">
+              <span>
+                UPI ID
+              </span>
 
-          <div
-            className="receipt-total"
-          >
+              <strong>
+                {upiId}
+              </strong>
+            </div>
+          )}
+
+          {/* TOTAL */}
+
+          <div className="receipt-total">
 
             <span>
-              जमा रक्कम
+              एकूण जमा रक्कम
             </span>
 
             <strong>
@@ -803,72 +862,92 @@ ${address}
 
           </div>
 
+          {/* FOOTER */}
 
-          {/* =================================================
-              THANK YOU
-          ================================================= */}
+          <div className="receipt-thanks">
 
-          <div
-            className="receipt-thanks"
-          >
             धन्यवाद! 🙏
+
+            {address && (
+              <div
+                style={{
+                  marginTop: "8px",
+                }}
+              >
+                📍 {address}
+              </div>
+            )}
+
+            {mandalMobile && (
+              <div
+                style={{
+                  marginTop: "4px",
+                }}
+              >
+                📞 {mandalMobile}
+              </div>
+            )}
+
           </div>
 
         </div>
 
+        {/* ACTIONS */}
 
-        {/* =================================================
-            ACTIONS
-        ================================================= */}
-
-        <div
-          className="receipt-actions"
-        >
-
-          {/* CLOSE */}
+        <div className="receipt-actions">
 
           <button
             type="button"
             className="receipt-btn cancel"
             onClick={onClose}
           >
-
             Close
-
           </button>
 
+          <button
+            type="button"
+            className="receipt-btn pdf"
+            onClick={
+              handleDownloadPDF
+            }
+          >
+            <Download size={17} />
+            PDF
+          </button>
 
-          {/* WHATSAPP */}
+          <button
+            type="button"
+            className="receipt-btn share"
+            onClick={
+              handleShare
+            }
+          >
+            <Share2 size={17} />
+            Share
+          </button>
 
           <button
             type="button"
             className="receipt-btn whatsapp"
-            onClick={sendWhatsApp}
+            onClick={
+              sendWhatsApp
+            }
           >
-
             <MessageCircle
               size={17}
             />
-
             WhatsApp
-
           </button>
-
-
-          {/* PRINT */}
 
           <button
             type="button"
             className="receipt-btn print"
-            onClick={printReceipt}
+            onClick={
+              printReceipt
+            }
           >
-
-            <Printer
-              size={17}
-            />
-
+            <Printer size={17} />
             Print
-
           </button>
 
         </div>
@@ -876,10 +955,7 @@ ${address}
       </div>
 
     </div>
-
   );
-
 }
-
 
 export default ReceiptModal;

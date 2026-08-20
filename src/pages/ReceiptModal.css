@@ -16,6 +16,9 @@
 
   z-index: 9999;
 
+  /* Prevent page/overlay scrollbar */
+  overflow: hidden;
+
   animation: receiptFadeIn 0.2s ease;
 }
 
@@ -30,7 +33,15 @@
 
   max-height: 94vh;
 
+  /*
+   * Keep scrolling enabled
+   * but hide the visible scrollbar
+   */
   overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 
   background: #ffffff;
 
@@ -42,6 +53,14 @@
     0 25px 70px rgba(0, 0, 0, 0.25);
 
   animation: receiptSlideUp 0.25s ease;
+}
+
+
+/* Chrome / Edge / Safari */
+.receipt-modal::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 
@@ -100,6 +119,8 @@
   cursor: pointer;
 
   transition: all 0.2s ease;
+
+  flex-shrink: 0;
 }
 
 
@@ -207,6 +228,8 @@
   color: #172033;
 
   font-size: 12px;
+
+  word-break: break-word;
 }
 
 
@@ -261,6 +284,8 @@
   text-align: right;
 
   word-break: break-word;
+
+  max-width: 70%;
 }
 
 
@@ -433,32 +458,6 @@
 
 
 /* =========================================================
-   SCROLLBAR
-========================================================= */
-
-.receipt-modal::-webkit-scrollbar {
-  width: 6px;
-}
-
-
-.receipt-modal::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-
-.receipt-modal::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-
-  border-radius: 10px;
-}
-
-
-.receipt-modal::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-
-/* =========================================================
    ANIMATIONS
 ========================================================= */
 
@@ -500,6 +499,8 @@
 
   .receipt-overlay {
     padding: 10px;
+
+    align-items: center;
   }
 
 
@@ -509,6 +510,22 @@
     padding: 16px;
 
     border-radius: 14px;
+
+    /*
+     * Keep scroll but hide scrollbar
+     */
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+
+  .receipt-modal::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
 
@@ -536,6 +553,11 @@
     font-size: 12px;
 
     gap: 15px;
+  }
+
+
+  .receipt-row strong {
+    max-width: 65%;
   }
 
 
@@ -604,6 +626,8 @@
     margin: 0 !important;
 
     background: #ffffff !important;
+
+    overflow: visible !important;
   }
 
 
@@ -625,6 +649,10 @@
     border-radius: 0 !important;
 
     box-shadow: none !important;
+
+    scrollbar-width: auto !important;
+
+    -ms-overflow-style: auto !important;
   }
 
 
@@ -686,4 +714,15 @@
     margin-top: 18px !important;
   }
 
+}
+.receipt-btn.pdf {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.receipt-btn.share {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
 }

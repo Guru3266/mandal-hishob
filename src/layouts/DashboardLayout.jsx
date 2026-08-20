@@ -6,6 +6,11 @@ import {
 } from "react-router-dom";
 
 import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
   LayoutDashboard,
   Users,
   WalletCards,
@@ -16,150 +21,312 @@ import {
   Globe,
   Settings,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 
-import {
-  useEffect,
-  useState,
-} from "react";
+import { supabase } from "../lib/supabase";
 
-import {
-  getMandalConfig,
-} from "../utils/mandalConfig";
+import useMandalConfig
+  from "../hooks/useMandalConfig";
 
 import "../App.css";
 
-
 function DashboardLayout() {
-
   const navigate = useNavigate();
 
+  const [mobileMenuOpen, setMobileMenuOpen] =
+    useState(false);
 
-  /* =====================================================
-     MANDAL CONFIG
-  ===================================================== */
+  // ============================================================
+  // AUTH STATE
+  // ============================================================
 
-  const [
-    mandalConfig,
-    setMandalConfig,
-  ] = useState(
-    getMandalConfig()
-  );
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
+  // ============================================================
+  // MANDAL CONFIG
+  // ============================================================
 
-  /* =====================================================
-     LOGIN CHECK
-  ===================================================== */
+  const mandalConfig = useMandalConfig();
 
-  const isLoggedIn =
-    localStorage.getItem(
-      "mandalLoggedIn"
-    ) === "true";
-
-
-  /* =====================================================
-     LISTEN FOR SETTINGS UPDATE
-  ===================================================== */
+  // ============================================================
+  // CHECK SUPABASE SESSION
+  // ============================================================
 
   useEffect(() => {
+    let mounted = true;
 
-    const updateConfig = () => {
+    const checkSession = async () => {
+      try {
+        const {
+          data,
+          error,
+        } = await supabase.auth.getSession();
 
-      setMandalConfig(
-        getMandalConfig()
-      );
+        if (error) {
+          console.error(
+            "Session error:",
+            error
+          );
 
+          if (mounted) {
+            setSession(null);
+          }
+
+          return;
+        }
+
+        if (mounted) {
+          setSession(data?.session || null);
+        }
+      } catch (error) {
+        console.error(
+          "Auth check error:",
+          error
+        );
+
+        if (mounted) {
+          setSession(null);
+        }
+      } finally {
+        if (mounted) {
+          setAuthLoading(false);
+        }
+      }
     };
 
+    checkSession();
 
-    window.addEventListener(
-      "mandalConfigUpdated",
-      updateConfig
-    );
+    // ==========================================================
+    // AUTH STATE LISTENER
+    // ==========================================================
 
+    const {
+      data: authListener,
+    } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        console.log(
+          "Auth event:",
+          event
+        );
 
-    return () => {
+        if (mounted) {
+          setSession(
+            currentSession || null
+          );
+        }
 
-      window.removeEventListener(
-        "mandalConfigUpdated",
-        updateConfig
-      );
+        // SIGNED OUT
+        if (
+          event === "SIGNED_OUT"
+        ) {
+          if (mounted) {
+            setMobileMenuOpen(false);
+          }
 
-    };
-
-  }, []);
-
-
-  /* =====================================================
-     LOGOUT
-  ===================================================== */
-
-  const handleLogout = () => {
-
-    localStorage.removeItem(
-      "mandalLoggedIn"
-    );
-
-    navigate(
-      "/login",
-      {
-        replace: true,
+          navigate("/login", {
+            replace: true,
+          });
+        }
       }
     );
 
+    return () => {
+      mounted = false;
+
+      authListener?.subscription?.unsubscribe();
+    };
+  }, [navigate]);
+
+  // ============================================================
+  // LOGOUT
+  // ============================================================
+
+  const handleLogout = async () => {
+    try {
+      console.log(
+        "Logout started..."
+      );
+
+      setMobileMenuOpen(false);
+
+      const {
+        error,
+      } = await supabase.auth.signOut({
+        scope: "global",
+      });
+
+      if (error) {
+        console.error(
+          "Supabase logout error:",
+          error
+        );
+
+        alert(
+          "Logout करताना समस्या आली."
+        );
+
+        return;
+      }
+
+      // Remove old temporary login
+      localStorage.removeItem(
+        "mandalLoggedIn"
+      );
+
+      console.log(
+        "Logout successful"
+      );
+
+      // Extra safety
+      setSession(null);
+
+      navigate("/login", {
+        replace: true,
+      });
+
+    } catch (error) {
+      console.error(
+        "Logout failed:",
+        error
+      );
+
+      // Remove old login flag
+      localStorage.removeItem(
+        "mandalLoggedIn"
+      );
+
+      // Force login page
+      window.location.replace(
+        "/login"
+      );
+    }
   };
 
+  // ============================================================
+  // AUTH LOADING
+  // ============================================================
 
-  /* =====================================================
-     PROTECT DASHBOARD
-  ===================================================== */
-
-  if (!isLoggedIn) {
-
+  if (authLoading) {
     return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "18px",
+        }}
+      >
+        Loading...
+      </div>
+    );
+  }
 
+  // ============================================================
+  // PROTECT DASHBOARD
+  // ============================================================
+
+  if (!session) {
+    return (
       <Navigate
         to="/login"
         replace
       />
-
     );
-
   }
 
-
-  /* =====================================================
-     NAVIGATION CLASS
-  ===================================================== */
+  // ============================================================
+  // NAVIGATION CLASS
+  // ============================================================
 
   const getNavClass = ({
     isActive,
   }) => {
-
     return `sidebar-link ${
       isActive
         ? "active"
         : ""
     }`;
-
   };
 
+  // ============================================================
+  // CLOSE MOBILE MENU
+  // ============================================================
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
-
     <div className="app">
 
+      {/* ======================================================
+          MOBILE HEADER
+      ====================================================== */}
 
-      {/* =================================================
+      <div className="mobile-header">
+
+        <div className="mobile-header-logo">
+
+          <div className="logo-icon">
+            🙏
+          </div>
+
+          <div>
+            <h2>
+              {mandalConfig?.name ||
+                "मंडळाचे नाव"}
+            </h2>
+
+            <span>
+              {mandalConfig?.tagline ||
+                "गणपती उत्सव 2026"}
+            </span>
+          </div>
+
+        </div>
+
+        <button
+          type="button"
+          className="mobile-menu-button"
+          onClick={() =>
+            setMobileMenuOpen(
+              (previous) =>
+                !previous
+            )
+          }
+        >
+          {mobileMenuOpen ? (
+            <X size={24} />
+          ) : (
+            <Menu size={24} />
+          )}
+        </button>
+
+      </div>
+
+      {/* ======================================================
           SIDEBAR
-      ================================================= */}
+      ====================================================== */}
 
-      <aside className="sidebar">
+      <aside
+        className={`sidebar ${
+          mobileMenuOpen
+            ? "mobile-open"
+            : ""
+        }`}
+      >
 
-
-        {/* =================================================
+        {/* ====================================================
             LOGO
-        ================================================= */}
+        ==================================================== */}
 
         <div className="logo">
 
@@ -167,199 +334,116 @@ function DashboardLayout() {
             🙏
           </div>
 
-
           <div>
 
             <h2>
-              {mandalConfig.name}
+              {mandalConfig?.name ||
+                "मंडळाचे नाव"}
             </h2>
 
             <span>
-              {mandalConfig.tagline}
+              {mandalConfig?.tagline ||
+                "गणपती उत्सव 2026"}
             </span>
 
           </div>
 
         </div>
 
-
-        {/* =================================================
-            MAIN NAVIGATION
-        ================================================= */}
+        {/* ====================================================
+            NAVIGATION
+        ==================================================== */}
 
         <nav className="sidebar-nav">
-
-
-          {/* DASHBOARD */}
 
           <NavLink
             to="/dashboard"
             className={getNavClass}
+            onClick={closeMobileMenu}
           >
-
-            <LayoutDashboard
-              size={18}
-            />
-
-            <span>
-              Dashboard
-            </span>
-
+            <LayoutDashboard size={18} />
+            <span>Dashboard</span>
           </NavLink>
-
-
-          {/* MEMBERS */}
 
           <NavLink
             to="/members"
             className={getNavClass}
+            onClick={closeMobileMenu}
           >
-
-            <Users
-              size={18}
-            />
-
-            <span>
-              वर्गणीदार
-            </span>
-
+            <Users size={18} />
+            <span>वर्गणीदार</span>
           </NavLink>
-
-
-          {/* COLLECTIONS */}
 
           <NavLink
             to="/collections"
             className={getNavClass}
+            onClick={closeMobileMenu}
           >
-
-            <WalletCards
-              size={18}
-            />
-
-            <span>
-              जमा रक्कम
-            </span>
-
+            <WalletCards size={18} />
+            <span>जमा रक्कम</span>
           </NavLink>
-
-
-          {/* RECEIPTS */}
 
           <NavLink
             to="/receipts"
             className={getNavClass}
+            onClick={closeMobileMenu}
           >
-
-            <ReceiptText
-              size={18}
-            />
-
-            <span>
-              पावत्या
-            </span>
-
+            <ReceiptText size={18} />
+            <span>पावत्या</span>
           </NavLink>
-
-
-          {/* EXPENSES */}
 
           <NavLink
             to="/expenses"
             className={getNavClass}
+            onClick={closeMobileMenu}
           >
-
-            <Banknote
-              size={18}
-            />
-
-            <span>
-              खर्च
-            </span>
-
+            <Banknote size={18} />
+            <span>खर्च</span>
           </NavLink>
-
-
-          {/* LEDGER */}
 
           <NavLink
             to="/ledger"
             className={getNavClass}
+            onClick={closeMobileMenu}
           >
-
-            <BookOpen
-              size={18}
-            />
-
-            <span>
-              Ledger
-            </span>
-
+            <BookOpen size={18} />
+            <span>Ledger</span>
           </NavLink>
-
-
-          {/* REPORTS */}
 
           <NavLink
             to="/reports"
             className={getNavClass}
+            onClick={closeMobileMenu}
           >
-
-            <BarChart3
-              size={18}
-            />
-
-            <span>
-              Reports
-            </span>
-
+            <BarChart3 size={18} />
+            <span>Reports</span>
           </NavLink>
-
-
-          {/* TRANSPARENCY */}
 
           <NavLink
             to="/transparency"
             className={getNavClass}
+            onClick={closeMobileMenu}
           >
-
-            <Globe
-              size={18}
-            />
-
-            <span>
-              Transparency
-            </span>
-
+            <Globe size={18} />
+            <span>Transparency</span>
           </NavLink>
 
         </nav>
 
-
-        {/* =================================================
-            BOTTOM MENU
-        ================================================= */}
+        {/* ====================================================
+            BOTTOM
+        ==================================================== */}
 
         <div className="sidebar-bottom">
-
-
-          {/* SETTINGS */}
 
           <NavLink
             to="/settings"
             className={getNavClass}
+            onClick={closeMobileMenu}
           >
-
-            <Settings
-              size={18}
-            />
-
-            <span>
-              Settings
-            </span>
-
+            <Settings size={18} />
+            <span>Settings</span>
           </NavLink>
-
 
           {/* LOGOUT */}
 
@@ -368,37 +452,24 @@ function DashboardLayout() {
             className="logout-link"
             onClick={handleLogout}
           >
-
-            <LogOut
-              size={18}
-            />
-
-            <span>
-              Logout
-            </span>
-
+            <LogOut size={18} />
+            <span>Logout</span>
           </button>
-
 
         </div>
 
       </aside>
 
-
-      {/* =================================================
-          MAIN CONTENT
-      ================================================= */}
+      {/* ======================================================
+          MAIN
+      ====================================================== */}
 
       <main className="main">
-
         <Outlet />
-
       </main>
 
     </div>
-
   );
-
 }
 
 export default DashboardLayout;

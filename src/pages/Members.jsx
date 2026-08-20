@@ -14,12 +14,11 @@ import {
 } from "lucide-react";
 
 import {
-  getMembers,
-  addMember,
-  updateMember,
-  deleteMember,
-  getMemberSummary,
-} from "../data/financialStore";
+  getMemberSummaryFromSupabase,
+  addMemberToSupabase,
+  updateMemberInSupabase,
+  deleteMemberFromSupabase,
+} from "../utils/supabaseMembers";
 
 import "./Members.css";
 
@@ -46,12 +45,12 @@ function Members() {
 
 
   const emptyForm = {
-    name: "",
-    mobile: "",
-    address: "",
-    expected: "",
-  };
-
+  name: "",
+  mobile: "",
+  address: "",
+  area: "",
+  expected: "",
+};
 
   const [formData, setFormData] =
     useState(emptyForm);
@@ -61,18 +60,24 @@ function Members() {
      LOAD MEMBERS
   ===================================================== */
 
-  const loadMembers = () => {
-
+  const loadMembers = async () => {
+  try {
     setLoading(true);
 
-    const data =
-      getMemberSummary();
+    const data = await getMemberSummaryFromSupabase();
 
     setMembers(data);
+  } catch (error) {
+    console.error("Load members error:", error);
 
+    alert(
+      error.message ||
+        "वर्गणीदारांची माहिती load करताना error आला."
+    );
+  } finally {
     setLoading(false);
-
-  };
+  }
+};
 
 
   useEffect(() => {
@@ -260,21 +265,13 @@ function Members() {
     );
 
 
-    setFormData({
-
-      name:
-        member.name || "",
-
-      mobile:
-        member.mobile || "",
-
-      address:
-        member.address || "",
-
-      expected:
-        member.expected || "",
-
-    });
+  setFormData({
+  name: member.name || "",
+  mobile: member.mobile || "",
+  address: member.address || "",
+  area: member.area || "",
+  expected: member.expected || "",
+});
 
 
     setShowModal(true);
@@ -327,9 +324,7 @@ function Members() {
      SAVE MEMBER
   ===================================================== */
 
-  const handleSubmit = (
-    event
-  ) => {
+  const handleSubmit = async (event) => {
 
     event.preventDefault();
 
@@ -387,31 +382,25 @@ function Members() {
     try {
 
       if (editingMember) {
-
-        updateMember(
-          editingMember.id,
-          {
-            name,
-            mobile:
-              formData.mobile,
-            address:
-              formData.address,
-            expected,
-          }
-        );
-
-      } else {
-
-        addMember({
-          name,
-          mobile:
-            formData.mobile,
-          address:
-            formData.address,
-          expected,
-        });
-
-      }
+  await updateMemberInSupabase(
+  editingMember.id,
+  {
+    name,
+    mobile: formData.mobile,
+    address: formData.address,
+    area: formData.area,
+    expected,
+  }
+);
+} else {
+  await addMemberToSupabase({
+  name,
+  mobile: formData.mobile,
+  address: formData.address,
+  area: formData.area,
+  expected,
+});
+}
 
 
       closeModal();
@@ -438,9 +427,7 @@ function Members() {
      DELETE MEMBER
   ===================================================== */
 
-  const handleDelete = (
-    member
-  ) => {
+  const handleDelete = async (member) => {
 
     const confirmed =
       window.confirm(
@@ -455,11 +442,8 @@ function Members() {
 
     try {
 
-      deleteMember(
-        member.id
-      );
-
-      loadMembers();
+     await deleteMemberFromSupabase(member.id);
+await loadMembers();
 
     } catch (error) {
 
@@ -895,12 +879,8 @@ function Members() {
                       <td>
 
                         <span className="member-id">
-
-                          {
-                            member.id
-                          }
-
-                        </span>
+  {member.memberCode}
+</span>
 
                       </td>
 
@@ -1210,6 +1190,17 @@ function Members() {
                 />
 
               </div>
+              <div className="member-form-group">
+  <label>Area</label>
+
+  <input
+    type="text"
+    name="area"
+    value={formData.area}
+    onChange={handleChange}
+    placeholder="उदा. Laxmi Nagar"
+  />
+</div>
 
 
               {/* EXPECTED */}

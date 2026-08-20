@@ -12,27 +12,37 @@ import {
   CalendarDays,
   ReceiptText,
   IndianRupee,
+  Plus,
+  X,
 } from "lucide-react";
 
 import {
-  getCollections,
-  getMembers,
-} from "../data/financialStore";
+  getReceipts,
+  addReceipt,
+  deleteReceipt,
+  getReceiptById
+} from "../utils/supabaseReceipts";
 
 import {
-  getMandalConfig,
-} from "../utils/mandalConfig";
+  getMembers
+} from "../utils/supabaseMembers";
+
+import useMandalConfig
+  from "../hooks/useMandalConfig";
 
 import ReceiptModal from "./ReceiptModal";
 
 import "./Receipts.css";
 
+// ============================================================
+// RECEIPTS PAGE
+// ============================================================
 
 function Receipts() {
 
-  /* =========================================================
-     STATE
-  ========================================================= */
+  // ============================================================
+  // STATE
+  // ============================================================
 
   const [receipts, setReceipts] =
     useState([]);
@@ -52,15 +62,37 @@ function Receipts() {
   const [selectedReceipt, setSelectedReceipt] =
     useState(null);
 
-  const [mandalConfig, setMandalConfig] =
-    useState(() =>
-      getMandalConfig()
-    );
+  const mandalConfig =
+  useMandalConfig();
 
+  const [loading, setLoading] =
+    useState(true);
 
-  /* =========================================================
-     MANDAL CONFIG
-  ========================================================= */
+  const [membersLoading, setMembersLoading] =
+    useState(true);
+
+  // ============================================================
+  // ADD RECEIPT STATE
+  // ============================================================
+
+  const [showAddModal, setShowAddModal] =
+    useState(false);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [form, setForm] = useState({
+    memberId: "",
+    amount: "",
+    mode: "Cash",
+    date: new Date()
+      .toISOString()
+      .slice(0, 10),
+  });
+
+  // ============================================================
+  // MANDAL CONFIG
+  // ============================================================
 
   const mandalName =
     mandalConfig?.name ||
@@ -70,36 +102,26 @@ function Receipts() {
     mandalConfig?.tagline ||
     "गणपती उत्सव 2026";
 
+  // ============================================================
+  // LOAD RECEIPTS
+  // ============================================================
 
-  /* =========================================================
-     LOAD DATA
-  ========================================================= */
-
-  const loadData = () => {
+  const loadData = async () => {
 
     try {
 
-      const collectionData =
-        getCollections();
+      setLoading(true);
 
-      const memberData =
-        getMembers();
+      const receiptData =
+        await getReceipts();
 
       setReceipts(
-        Array.isArray(collectionData)
-          ? collectionData
+        Array.isArray(receiptData)
+          ? receiptData
           : []
       );
 
-      setMembers(
-        Array.isArray(memberData)
-          ? memberData
-          : []
-      );
-
-      setMandalConfig(
-        getMandalConfig()
-      );
+   
 
     } catch (error) {
 
@@ -109,42 +131,72 @@ function Receipts() {
       );
 
       setReceipts([]);
-      setMembers([]);
 
-      setMandalConfig(
-        getMandalConfig()
-      );
+    } finally {
+
+      setLoading(false);
 
     }
-
   };
 
+  // ============================================================
+  // LOAD MEMBERS
+  // ============================================================
 
-  /* =========================================================
-     LOAD + LIVE UPDATE
-  ========================================================= */
+  const loadMembers = async () => {
+
+    try {
+
+      setMembersLoading(true);
+
+      const memberData =
+        await getMembers();
+
+      setMembers(
+        Array.isArray(memberData)
+          ? memberData
+          : []
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Members loading error:",
+        error
+      );
+
+      setMembers([]);
+
+    } finally {
+
+      setMembersLoading(false);
+
+    }
+  };
+
+  // ============================================================
+  // INITIAL LOAD
+  // ============================================================
 
   useEffect(() => {
 
     loadData();
-
+    loadMembers();
 
     const handleUpdate = () => {
       loadData();
+      loadMembers();
     };
-
 
     window.addEventListener(
       "mandal-data-updated",
       handleUpdate
     );
 
-
     window.addEventListener(
       "storage",
       handleUpdate
     );
-
 
     return () => {
 
@@ -162,27 +214,78 @@ function Receipts() {
 
   }, []);
 
+  // ============================================================
+  // NORMALIZE DATE
+  // ============================================================
 
-  /* =========================================================
-     GET MEMBER
-  ========================================================= */
+  const normalizeDate = (value) => {
 
-  const getMember = (
-    memberId
-  ) => {
+    if (!value) {
+      return "";
+    }
 
-    return members.find(
-      (member) =>
-        String(member.id) ===
-        String(memberId)
-    );
+    const dateString =
+      String(value).trim();
 
+    // YYYY-MM-DD
+
+    if (
+      /^\d{4}-\d{2}-\d{2}$/.test(
+        dateString
+      )
+    ) {
+
+      return dateString;
+
+    }
+
+    // ISO date
+
+    if (
+      /^\d{4}-\d{2}-\d{2}T/.test(
+        dateString
+      )
+    ) {
+
+      return dateString.slice(
+        0,
+        10
+      );
+
+    }
+
+    // DD-MM-YYYY
+
+    const dashMatch =
+      dateString.match(
+        /^(\d{2})-(\d{2})-(\d{4})$/
+      );
+
+    if (dashMatch) {
+
+      return `${dashMatch[3]}-${dashMatch[2]}-${dashMatch[1]}`;
+
+    }
+
+    // DD/MM/YYYY
+
+    const slashMatch =
+      dateString.match(
+        /^(\d{2})\/(\d{2})\/(\d{4})$/
+      );
+
+    if (slashMatch) {
+
+      return `${slashMatch[3]}-${slashMatch[2]}-${slashMatch[1]}`;
+
+    }
+
+    return dateString;
   };
 
-
-  /* =========================================================
-     FILTERED RECEIPTS
-  ========================================================= */
+  // ============================================================
+  // FILTERED RECEIPTS
+  // ============================================================
 
   const filteredReceipts =
     useMemo(() => {
@@ -194,7 +297,6 @@ function Receipts() {
             search
               .trim()
               .toLowerCase();
-
 
           const matchesSearch =
             !keyword ||
@@ -221,20 +323,43 @@ function Receipts() {
               receipt.memberId || ""
             )
               .toLowerCase()
-              .includes(keyword);
+              .includes(keyword) ||
 
+            String(
+              receipt.memberCode || ""
+            )
+              .toLowerCase()
+              .includes(keyword) ||
+
+            String(
+              receipt.mobile || ""
+            )
+              .toLowerCase()
+              .includes(keyword);
 
           const matchesMode =
             modeFilter === "All" ||
-            receipt.mode ===
-              modeFilter;
+            String(
+              receipt.mode || ""
+            ).toLowerCase() ===
+              String(
+                modeFilter
+              ).toLowerCase();
 
+          const receiptDate =
+            normalizeDate(
+              receipt.date
+            );
+
+          const selectedDate =
+            normalizeDate(
+              dateFilter
+            );
 
           const matchesDate =
             !dateFilter ||
-            receipt.date ===
-              dateFilter;
-
+            receiptDate ===
+              selectedDate;
 
           return (
             matchesSearch &&
@@ -252,17 +377,13 @@ function Receipts() {
       dateFilter,
     ]);
 
-
-  /* =========================================================
-     TOTAL AMOUNT
-  ========================================================= */
+  // ============================================================
+  // TOTAL AMOUNT
+  // ============================================================
 
   const totalAmount =
     filteredReceipts.reduce(
-      (
-        total,
-        receipt
-      ) => {
+      (total, receipt) => {
 
         return (
           total +
@@ -275,14 +396,11 @@ function Receipts() {
       0
     );
 
+  // ============================================================
+  // MONEY FORMAT
+  // ============================================================
 
-  /* =========================================================
-     MONEY FORMAT
-  ========================================================= */
-
-  const money = (
-    amount
-  ) => {
+  const money = (amount) => {
 
     return Number(
       amount || 0
@@ -292,51 +410,245 @@ function Receipts() {
 
   };
 
+  // ============================================================
+  // DISPLAY DATE
+  // ============================================================
 
-  /* =========================================================
-     DATE FORMAT
-  ========================================================= */
+  const formatDate = (date) => {
 
-  const formatDate = (
-    date
-  ) => {
+    const normalized =
+      normalizeDate(date);
 
-    if (!date) {
+    if (!normalized) {
       return "-";
     }
 
-
     const parts =
-      String(date).split("-");
+      normalized.split("-");
 
-
-    if (
-      parts.length !== 3
-    ) {
+    if (parts.length !== 3) {
       return date;
     }
 
-
-    return (
-      `${parts[2]}-${parts[1]}-${parts[0]}`
-    );
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
 
   };
 
+  // ============================================================
+  // ADD RECEIPT FORM CHANGE
+  // ============================================================
 
-  /* =========================================================
-     PRINT RECEIPT
-  ========================================================= */
+  const handleFormChange = (event) => {
 
-  const printReceipt = (
-    receipt
+    const {
+      name,
+      value,
+    } = event.target;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+
+  };
+
+  // ============================================================
+  // OPEN ADD MODAL
+  // ============================================================
+
+  const openAddModal = () => {
+
+    setForm({
+      memberId: "",
+      amount: "",
+      mode: "Cash",
+      date: new Date()
+        .toISOString()
+        .slice(0, 10),
+    });
+
+    setShowAddModal(true);
+
+  };
+
+  // ============================================================
+  // CLOSE ADD MODAL
+  // ============================================================
+
+  const closeAddModal = () => {
+
+    if (saving) {
+      return;
+    }
+
+    setShowAddModal(false);
+
+  };
+
+  // ============================================================
+  // ADD RECEIPT
+  // ============================================================
+
+  const handleAddReceipt = async (
+    event
   ) => {
 
-    const member =
-      getMember(
-        receipt.memberId
+    event.preventDefault();
+
+    // ----------------------------------------------------------
+    // MEMBER VALIDATION
+    // ----------------------------------------------------------
+
+    if (!form.memberId) {
+
+      alert(
+        "कृपया वर्गणीदार निवडा."
       );
 
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // AMOUNT VALIDATION
+    // ----------------------------------------------------------
+
+    const amount =
+      Number(form.amount);
+
+    if (
+      !form.amount ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+
+      alert(
+        "कृपया योग्य रक्कम टाका."
+      );
+
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // MODE VALIDATION
+    // ----------------------------------------------------------
+
+    const allowedModes = [
+      "Cash",
+      "UPI",
+      "Bank",
+    ];
+
+    if (
+      !allowedModes.includes(
+        form.mode
+      )
+    ) {
+
+      alert(
+        "कृपया योग्य Payment Mode निवडा."
+      );
+
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // DATE VALIDATION
+    // ----------------------------------------------------------
+
+    if (!form.date) {
+
+      alert(
+        "कृपया तारीख निवडा."
+      );
+
+      return;
+    }
+
+    try {
+
+      setSaving(true);
+
+      // --------------------------------------------------------
+      // SUPABASE INSERT
+      // --------------------------------------------------------
+
+      await addReceipt({
+        memberId: form.memberId,
+        amount,
+        mode: form.mode,
+        date: form.date,
+      });
+
+      // --------------------------------------------------------
+      // CLOSE MODAL
+      // --------------------------------------------------------
+
+      setShowAddModal(false);
+
+      // --------------------------------------------------------
+      // RESET FORM
+      // --------------------------------------------------------
+
+      setForm({
+        memberId: "",
+        amount: "",
+        mode: "Cash",
+        date: new Date()
+          .toISOString()
+          .slice(0, 10),
+      });
+
+      // --------------------------------------------------------
+      // REFRESH RECEIPTS
+      // --------------------------------------------------------
+
+      await loadData();
+
+      // --------------------------------------------------------
+      // REFRESH MEMBERS
+      // --------------------------------------------------------
+
+      await loadMembers();
+
+      // --------------------------------------------------------
+      // EVENT FOR DASHBOARD / OTHER PAGES
+      // --------------------------------------------------------
+
+      window.dispatchEvent(
+        new Event(
+          "mandal-data-updated"
+        )
+      );
+
+      alert(
+        "पावती यशस्वीपणे नोंदवली."
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Add receipt error:",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "पावती नोंदवताना काहीतरी चूक झाली."
+      );
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
+  };
+
+  // ============================================================
+  // PRINT RECEIPT
+  // ============================================================
+
+  const printReceipt = (receipt) => {
 
     const printWindow =
       window.open(
@@ -345,7 +657,6 @@ function Receipts() {
         "width=700,height=800"
       );
 
-
     if (!printWindow) {
 
       alert(
@@ -353,9 +664,7 @@ function Receipts() {
       );
 
       return;
-
     }
-
 
     const safeMandalName =
       mandalName;
@@ -364,19 +673,15 @@ function Receipts() {
       mandalTagline;
 
     const safeAddress =
-      mandalConfig?.address ||
-      "";
+      mandalConfig?.address || "";
 
     const safeMobile =
-      member?.mobile ||
-      receipt.mobile ||
-      "-";
+      receipt.mobile || "-";
 
     const safeReceiptNo =
       receipt.receiptNo ||
       receipt.id ||
       "-";
-
 
     printWindow.document.write(`
 
@@ -499,7 +804,6 @@ function Receipts() {
 
         </head>
 
-
         <body>
 
           <div class="receipt">
@@ -530,7 +834,6 @@ function Receipts() {
 
             </div>
 
-
             <div class="receipt-no">
 
               Receipt No.
@@ -540,7 +843,6 @@ function Receipts() {
               </strong>
 
             </div>
-
 
             <div class="row">
 
@@ -554,7 +856,6 @@ function Receipts() {
 
             </div>
 
-
             <div class="row">
 
               <span>
@@ -566,7 +867,6 @@ function Receipts() {
               </strong>
 
             </div>
-
 
             <div class="row">
 
@@ -580,7 +880,6 @@ function Receipts() {
 
             </div>
 
-
             <div class="row">
 
               <span>
@@ -592,7 +891,6 @@ function Receipts() {
               </strong>
 
             </div>
-
 
             <div class="row">
 
@@ -608,7 +906,6 @@ function Receipts() {
 
             </div>
 
-
             <div class="row">
 
               <span>
@@ -620,7 +917,6 @@ function Receipts() {
               </strong>
 
             </div>
-
 
             <div class="amount">
 
@@ -635,7 +931,6 @@ function Receipts() {
               </strong>
 
             </div>
-
 
             <div class="footer">
 
@@ -658,12 +953,12 @@ function Receipts() {
 
           </div>
 
-
           <script>
 
-            window.onload = function() {
-              window.print();
-            };
+            window.onload =
+              function () {
+                window.print();
+              };
 
           </script>
 
@@ -673,55 +968,36 @@ function Receipts() {
 
     `);
 
-
     printWindow.document.close();
 
   };
 
-
-  /* =========================================================
-     WHATSAPP
-  ========================================================= */
+  // ============================================================
+  // WHATSAPP
+  // ============================================================
 
   const sendWhatsApp = (
     receipt
   ) => {
 
-    const member =
-      getMember(
-        receipt.memberId
-      );
-
-
     const mobile =
-      member?.mobile ||
-      receipt.mobile ||
-      "";
-
+      receipt.mobile || "";
 
     const phone =
-      String(
-        mobile
-      ).replace(
-        /\D/g,
-        ""
-      );
+      String(mobile)
+        .replace(/\D/g, "");
 
-
-    if (
-      phone.length !== 10
-    ) {
+    if (phone.length !== 10) {
 
       alert(
         "या वर्गणीदाराचा valid 10 अंकी mobile number उपलब्ध नाही."
       );
 
       return;
-
     }
 
-
     const message = `
+
 🙏 ${mandalName}
 
 ${mandalTagline}
@@ -735,52 +1011,51 @@ ${
 🧾 जमा पावती
 
 पावती क्र.: ${
-  receipt.receiptNo ||
-  receipt.id ||
-  "-"
-}
+      receipt.receiptNo ||
+      receipt.id ||
+      "-"
+    }
 
 वर्गणीदार: ${
-  receipt.memberName ||
-  "-"
-}
+      receipt.memberName ||
+      "-"
+    }
 
 Member ID: ${
-  receipt.memberId ||
-  "-"
-}
+      receipt.memberId ||
+      "-"
+    }
 
 Mobile: ${mobile}
 
 जमा रक्कम: ₹${money(
-  receipt.amount
-)}
+      receipt.amount
+    )}
 
 Payment Mode: ${
-  receipt.mode ||
-  "-"
-}
+      receipt.mode ||
+      "-"
+    }
 
 Date: ${
-  formatDate(
-    receipt.date
-  )
-}
+      formatDate(
+        receipt.date
+      )
+    }
 
 Remark: ${
-  receipt.remark ||
-  "-"
-}
+      receipt.remark ||
+      "-"
+    }
 
 ${mandalName} च्या वतीने धन्यवाद 🙏
-    `.trim();
 
+    `.trim();
 
     const url =
       `https://wa.me/91${phone}?text=${encodeURIComponent(
         message
       )}`;
-
 
     window.open(
       url,
@@ -790,19 +1065,17 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
   };
 
-
-  /* =========================================================
-     RENDER
-  ========================================================= */
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
 
     <div className="receipts-page">
 
-
-      {/* =====================================================
+      {/* ======================================================
           HEADER
-      ===================================================== */}
+      ====================================================== */}
 
       <div className="receipts-header">
 
@@ -819,15 +1092,27 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
         </div>
 
+        <button
+          type="button"
+          className="add-receipt-btn"
+          onClick={openAddModal}
+        >
+
+          <Plus
+            size={18}
+          />
+
+          पावती नोंदवा
+
+        </button>
+
       </div>
 
-
-      {/* =====================================================
+      {/* ======================================================
           SUMMARY
-      ===================================================== */}
+      ====================================================== */}
 
       <div className="receipts-summary">
-
 
         {/* TOTAL RECEIPTS */}
 
@@ -854,7 +1139,6 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
           </div>
 
         </div>
-
 
         {/* TOTAL AMOUNT */}
 
@@ -884,7 +1168,6 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
         </div>
 
-
         {/* UPI */}
 
         <div className="receipt-summary-card">
@@ -908,7 +1191,8 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
               {
                 filteredReceipts.filter(
                   (item) =>
-                    item.mode === "UPI"
+                    item.mode ===
+                    "UPI"
                 ).length
               }
 
@@ -917,7 +1201,6 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
           </div>
 
         </div>
-
 
         {/* CASH */}
 
@@ -942,7 +1225,8 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
               {
                 filteredReceipts.filter(
                   (item) =>
-                    item.mode === "Cash"
+                    item.mode ===
+                    "Cash"
                 ).length
               }
 
@@ -954,15 +1238,11 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
       </div>
 
-
-      {/* =====================================================
+      {/* ======================================================
           PANEL
-      ===================================================== */}
+      ====================================================== */}
 
       <div className="receipts-panel">
-
-
-        {/* PANEL HEADER */}
 
         <div className="receipts-panel-header">
 
@@ -973,16 +1253,16 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
             </h2>
 
             <p>
-              {filteredReceipts.length} records
+              {filteredReceipts.length}
+              {" "}
+              records
             </p>
 
           </div>
 
-
           {/* FILTERS */}
 
           <div className="receipts-filters">
-
 
             {/* SEARCH */}
 
@@ -1004,7 +1284,6 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
               />
 
             </div>
-
 
             {/* MODE */}
 
@@ -1036,7 +1315,6 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
             </select>
 
-
             {/* DATE */}
 
             <div className="receipt-date-filter">
@@ -1057,10 +1335,42 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
             </div>
 
+            {/* CLEAR DATE */}
+
+            {dateFilter && (
+
+              <button
+                type="button"
+                className="receipt-refresh"
+                title="Clear Date"
+                onClick={() =>
+                  setDateFilter("")
+                }
+              >
+
+                ×
+
+              </button>
+
+            )}
+
+            {/* REFRESH */}
+
+            <button
+              type="button"
+              className="receipt-refresh"
+              onClick={loadData}
+              disabled={loading}
+              title="Refresh"
+            >
+
+              ↻
+
+            </button>
+
           </div>
 
         </div>
-
 
         {/* ===================================================
             TABLE
@@ -1106,13 +1416,33 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
             </thead>
 
-
             <tbody>
 
+              {/* LOADING */}
 
-              {/* EMPTY */}
+              {loading ? (
 
-              {filteredReceipts.length === 0 ? (
+                <tr>
+
+                  <td
+                    colSpan="7"
+                    style={{
+                      padding:
+                        "50px",
+                      textAlign:
+                        "center",
+                    }}
+                  >
+
+                    पावत्या loading होत आहेत...
+
+                  </td>
+
+                </tr>
+
+              ) : filteredReceipts.length === 0 ? (
+
+                /* EMPTY */
 
                 <tr>
 
@@ -1134,7 +1464,7 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
                       </strong>
 
                       <span>
-                        Members मधून जमा केल्यावर
+                        Supabase मधून जमा केलेली
                         पावती येथे दिसेल.
                       </span>
 
@@ -1149,18 +1479,10 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
                 filteredReceipts.map(
                   (receipt) => {
 
-                    /*
-                     * IMPORTANT:
-                     * Always use receiptNo first.
-                     * If old data doesn't have receiptNo,
-                     * fallback to id.
-                     */
-
                     const receiptNumber =
                       receipt.receiptNo ||
                       receipt.id ||
                       "-";
-
 
                     return (
 
@@ -1170,7 +1492,6 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
                         }
                       >
 
-
                         {/* RECEIPT NUMBER */}
 
                         <td>
@@ -1178,11 +1499,12 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
                           <strong
                             className="receipt-number"
                           >
+
                             {receiptNumber}
+
                           </strong>
 
                         </td>
-
 
                         {/* MEMBER */}
 
@@ -1194,27 +1516,44 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
                               {receipt.memberName
                                 ?.charAt(0)
-                                ?.toUpperCase() || "?"}
+                                ?.toUpperCase() ||
+                                "?"}
 
                             </div>
-
 
                             <div>
 
                               <strong>
-                                {receipt.memberName || "-"}
+                                {
+                                  receipt.memberName ||
+                                  "-"
+                                }
                               </strong>
 
                               <span>
-                                {receipt.memberId || "-"}
+
+                                {
+                                  receipt.memberCode
+                                    ? receipt.memberCode
+                                    : receipt.memberId ||
+                                      "-"
+                                }
+
                               </span>
+
+                              {receipt.mobile && (
+
+                                <small>
+                                  {receipt.mobile}
+                                </small>
+
+                              )}
 
                             </div>
 
                           </div>
 
                         </td>
-
 
                         {/* AMOUNT */}
 
@@ -1223,14 +1562,15 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
                           <strong
                             className="receipt-amount"
                           >
+
                             ₹
                             {money(
                               receipt.amount
                             )}
+
                           </strong>
 
                         </td>
-
 
                         {/* MODE */}
 
@@ -1238,18 +1578,24 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
                           <span
                             className={`receipt-mode ${
-                              receipt.mode === "Cash"
+                              receipt.mode ===
+                              "Cash"
                                 ? "cash"
-                                : receipt.mode === "UPI"
+                                : receipt.mode ===
+                                  "UPI"
                                 ? "upi"
                                 : "bank"
                             }`}
                           >
-                            {receipt.mode || "-"}
+
+                            {
+                              receipt.mode ||
+                              "-"
+                            }
+
                           </span>
 
                         </td>
-
 
                         {/* DATE */}
 
@@ -1261,16 +1607,16 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
                         </td>
 
-
                         {/* REMARK */}
 
                         <td>
 
-                          {receipt.remark ||
-                            "-"}
+                          {
+                            receipt.remark ||
+                            "-"
+                          }
 
                         </td>
-
 
                         {/* ACTIONS */}
 
@@ -1278,25 +1624,18 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
                           <div className="receipt-actions">
 
+                            {/* VIEW */}
 
-                           {/* VIEW */}
-
-<button
+                            <button
   type="button"
   className="receipt-action view"
   title="View Receipt"
-  onClick={() => {
-    console.log("VIEW RECEIPT:", receipt);
-    setSelectedReceipt(receipt);
-  }}
+  onClick={() => setSelectedReceipt(receipt)}
 >
   <Eye size={15} />
 </button>
 
-
-                            {/* =========================
-                                PRINT
-                            ========================= */}
+                            {/* PRINT */}
 
                             <button
                               type="button"
@@ -1315,10 +1654,7 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
                             </button>
 
-
-                            {/* =========================
-                                WHATSAPP
-                            ========================= */}
+                            {/* WHATSAPP */}
 
                             <button
                               type="button"
@@ -1337,11 +1673,9 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
                             </button>
 
-
                           </div>
 
                         </td>
-
 
                       </tr>
 
@@ -1352,37 +1686,420 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
               )}
 
-
             </tbody>
 
           </table>
 
         </div>
 
-
       </div>
 
+      {/* ======================================================
+          RECEIPT VIEW MODAL
+      ====================================================== */}
 
-   {/* =====================================================
-    RECEIPT MODAL
-===================================================== */}
+      {selectedReceipt && (
 
-{selectedReceipt && (
-  <ReceiptModal
-    payment={selectedReceipt}
-    receipt={selectedReceipt}
-    onClose={() => {
-      setSelectedReceipt(null);
-    }}
-  />
-)}
+        <ReceiptModal
+          payment={
+            selectedReceipt
+          }
+          receipt={
+            selectedReceipt
+          }
+          onClose={() => {
+            setSelectedReceipt(
+              null
+            );
+          }}
+        />
 
+      )}
+
+      {/* ======================================================
+          ADD RECEIPT MODAL
+      ====================================================== */}
+
+      {showAddModal && (
+
+        <div
+          className="receipt-modal-overlay"
+          onMouseDown={(event) => {
+
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              closeAddModal();
+            }
+
+          }}
+        >
+
+          <div
+            className="receipt-add-modal"
+            onMouseDown={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            {/* MODAL HEADER */}
+
+            <div className="receipt-add-modal-header">
+
+              <div>
+
+                <h2>
+                  पावती नोंदवा
+                </h2>
+
+                <p>
+                  वर्गणीदाराची जमा रक्कम नोंदवा
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                className="receipt-add-close"
+                onClick={closeAddModal}
+                disabled={saving}
+              >
+
+                <X
+                  size={20}
+                />
+
+              </button>
+
+            </div>
+
+            {/* FORM */}
+
+            <form
+              onSubmit={
+                handleAddReceipt
+              }
+              className="receipt-add-form"
+            >
+
+              {/* MEMBER */}
+
+              <div className="receipt-form-group">
+
+                <label>
+                  वर्गणीदार
+                  <span>
+                    *
+                  </span>
+                </label>
+
+                <select
+                  name="memberId"
+                  value={
+                    form.memberId
+                  }
+                  onChange={
+                    handleFormChange
+                  }
+                  disabled={
+                    saving ||
+                    membersLoading
+                  }
+                  required
+                >
+
+                  <option value="">
+                    {
+                      membersLoading
+                        ? "वर्गणीदार loading..."
+                        : "वर्गणीदार निवडा"
+                    }
+                  </option>
+
+                  {members.map(
+                    (member) => (
+
+                      <option
+                        key={
+                          member.id
+                        }
+                        value={
+                          member.id
+                        }
+                      >
+
+                        {
+                          member.name ||
+                          "Unknown"
+                        }
+
+                        {member.member_code
+                          ? ` (${member.member_code})`
+                          : ""}
+
+                      </option>
+
+                    )
+                  )}
+
+                </select>
+
+                {!membersLoading &&
+                  members.length === 0 && (
+
+                    <small
+                      className="receipt-form-error"
+                    >
+                      कोणतेही वर्गणीदार उपलब्ध नाहीत.
+                    </small>
+
+                  )}
+
+              </div>
+
+              {/* SELECTED MEMBER INFO */}
+
+              {form.memberId && (
+
+                <div className="receipt-selected-member">
+
+                  {(() => {
+
+                    const member =
+                      members.find(
+                        (item) =>
+                          String(
+                            item.id
+                          ) ===
+                          String(
+                            form.memberId
+                          )
+                      );
+
+                    if (!member) {
+                      return null;
+                    }
+
+                    return (
+                      <>
+                        <div>
+
+                          <span>
+                            वर्गणीदार
+                          </span>
+
+                          <strong>
+                            {
+                              member.name ||
+                              "-"
+                            }
+                          </strong>
+
+                        </div>
+
+                        <div>
+
+                          <span>
+                            Member Code
+                          </span>
+
+                          <strong>
+                            {
+                              member.member_code ||
+                              "-"
+                            }
+                          </strong>
+
+                        </div>
+
+                        <div>
+
+                          <span>
+                            Mobile
+                          </span>
+
+                          <strong>
+                            {
+                              member.mobile ||
+                              "-"
+                            }
+                          </strong>
+
+                        </div>
+
+                      </>
+                    );
+
+                  })()}
+
+                </div>
+
+              )}
+
+              {/* AMOUNT */}
+
+              <div className="receipt-form-group">
+
+                <label>
+                  जमा रक्कम
+                  <span>
+                    *
+                  </span>
+                </label>
+
+                <div className="receipt-amount-input">
+
+                  <IndianRupee
+                    size={17}
+                  />
+
+                  <input
+                    type="number"
+                    name="amount"
+                    value={
+                      form.amount
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    placeholder="उदा. 500"
+                    min="1"
+                    step="0.01"
+                    disabled={saving}
+                    required
+                  />
+
+                </div>
+
+              </div>
+
+              {/* PAYMENT MODE */}
+
+              <div className="receipt-form-group">
+
+                <label>
+                  Payment Mode
+                  <span>
+                    *
+                  </span>
+                </label>
+
+                <select
+                  name="mode"
+                  value={
+                    form.mode
+                  }
+                  onChange={
+                    handleFormChange
+                  }
+                  disabled={saving}
+                  required
+                >
+
+                  <option value="Cash">
+                    Cash
+                  </option>
+
+                  <option value="UPI">
+                    UPI
+                  </option>
+
+                  <option value="Bank">
+                    Bank
+                  </option>
+
+                </select>
+
+              </div>
+
+              {/* DATE */}
+
+              <div className="receipt-form-group">
+
+                <label>
+                  तारीख
+                  <span>
+                    *
+                  </span>
+                </label>
+
+                <div className="receipt-date-input">
+
+                  <CalendarDays
+                    size={17}
+                  />
+
+                  <input
+                    type="date"
+                    name="date"
+                    value={
+                      form.date
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    disabled={saving}
+                    required
+                  />
+
+                </div>
+
+              </div>
+
+              {/* ACTIONS */}
+
+              <div className="receipt-add-actions">
+
+                <button
+                  type="button"
+                  className="receipt-cancel-btn"
+                  onClick={
+                    closeAddModal
+                  }
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="receipt-save-btn"
+                  disabled={
+                    saving ||
+                    membersLoading ||
+                    members.length === 0
+                  }
+                >
+
+                  {saving ? (
+                    <>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Plus
+                        size={17}
+                      />
+
+                      पावती जतन करा
+                    </>
+                  )}
+
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      )}
 
     </div>
-
   );
-
 }
-
 
 export default Receipts;

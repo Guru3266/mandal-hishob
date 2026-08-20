@@ -21,24 +21,19 @@ import {
   addExpense,
   updateExpense,
   deleteExpense,
-  getTotalExpense,
-} from "../data/financialStore";
+} from "../utils/supabaseExpenses";
 
-import { getMandalConfig } from "../utils/mandalConfig";
-
+import useMandalConfig from "../hooks/useMandalConfig";
 import "./Expenses.css";
 
-
 function Expenses() {
-
   // =====================================================
   // STATES
   // =====================================================
 
   const [expenses, setExpenses] = useState([]);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
   const [categoryFilter, setCategoryFilter] =
     useState("All");
@@ -58,9 +53,8 @@ function Expenses() {
   const [loading, setLoading] =
     useState(false);
 
-  const [mandalConfig, setMandalConfig] =
-    useState(getMandalConfig());
-
+  const mandalConfig =
+  useMandalConfig();
 
   // =====================================================
   // EMPTY FORM
@@ -77,154 +71,145 @@ function Expenses() {
     remark: "",
   };
 
-
   const [formData, setFormData] =
     useState(emptyForm);
-
 
   // =====================================================
   // LOAD EXPENSES
   // =====================================================
 
-  const loadExpenses = () => {
+  const loadExpenses = async () => {
+    try {
+      setLoading(true);
 
-    setLoading(true);
+      const data = await getExpenses();
 
-    const data =
-      getExpenses();
+      const mappedData = (data || []).map(
+        (expense) => ({
+          ...expense,
 
-    setExpenses(
-      [...data].sort(
-        (a, b) =>
-          new Date(b.date || 0) -
-          new Date(a.date || 0)
-      )
-    );
+          // Supabase → UI mapping
+          expenseId:
+            expense.expense_id || "",
 
-    setLoading(false);
+          date:
+            expense.expense_date || "",
+
+          // Supabase table does not currently
+          // contain remark column
+          remark:
+            expense.remark || "",
+        })
+      );
+
+      setExpenses(
+        mappedData.sort(
+          (a, b) =>
+            new Date(b.date || 0) -
+            new Date(a.date || 0)
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Expenses load error:",
+        error
+      );
+
+      alert(
+        error.message ||
+          "Expenses load करताना error आला."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
 
-  useEffect(() => {
-
-    loadExpenses();
-
-    const loadConfig = () => {
-      setMandalConfig(
-        getMandalConfig()
-      );
-    };
-
-    window.addEventListener(
-      "mandal-data-updated",
-      loadConfig
-    );
-
-    return () => {
-
-      window.removeEventListener(
-        "mandal-data-updated",
-        loadConfig
-      );
-
-    };
-
-  }, []);
-
+ useEffect(() => {
+  loadExpenses();
+}, []);
 
   // =====================================================
   // CATEGORIES
   // =====================================================
 
-  const categories =
-    useMemo(() => {
+  const categories = useMemo(() => {
+    const values = expenses
+      .map(
+        (expense) =>
+          expense.category
+      )
+      .filter(Boolean);
 
-      const values =
-        expenses
-          .map(
-            (expense) =>
-              expense.category
-          )
-          .filter(Boolean);
-
-      return [
-        ...new Set(values),
-      ];
-
-    }, [expenses]);
-
+    return [...new Set(values)];
+  }, [expenses]);
 
   // =====================================================
   // FILTER
   // =====================================================
 
-  const filteredExpenses =
-    useMemo(() => {
+  const filteredExpenses = useMemo(() => {
+    const query = search
+      .trim()
+      .toLowerCase();
 
-      const query =
-        search
-          .trim()
-          .toLowerCase();
+    return expenses.filter(
+      (expense) => {
+        const matchesSearch =
+          !query ||
+          String(
+            expense.category || ""
+          )
+            .toLowerCase()
+            .includes(query) ||
 
-      return expenses.filter(
-        (expense) => {
+          String(
+            expense.description || ""
+          )
+            .toLowerCase()
+            .includes(query) ||
 
-          const matchesSearch =
-            !query ||
-            String(
-              expense.category || ""
-            )
-              .toLowerCase()
-              .includes(query) ||
+          String(
+            expense.expense_id ||
+              expense.expenseId ||
+              expense.id ||
+              ""
+          )
+            .toLowerCase()
+            .includes(query);
 
-            String(
-              expense.description || ""
-            )
-              .toLowerCase()
-              .includes(query) ||
+        const matchesCategory =
+          categoryFilter === "All" ||
+          expense.category ===
+            categoryFilter;
 
-            String(
-              expense.id || ""
-            )
-              .toLowerCase()
-              .includes(query);
+        const matchesMode =
+          modeFilter === "All" ||
+          expense.mode ===
+            modeFilter;
 
-
-          const matchesCategory =
-            categoryFilter === "All" ||
-            expense.category ===
-              categoryFilter;
-
-
-          const matchesMode =
-            modeFilter === "All" ||
-            expense.mode ===
-              modeFilter;
-
-
-          return (
-            matchesSearch &&
-            matchesCategory &&
-            matchesMode
-          );
-
-        }
-      );
-
-    }, [
-      expenses,
-      search,
-      categoryFilter,
-      modeFilter,
-    ]);
-
+        return (
+          matchesSearch &&
+          matchesCategory &&
+          matchesMode
+        );
+      }
+    );
+  }, [
+    expenses,
+    search,
+    categoryFilter,
+    modeFilter,
+  ]);
 
   // =====================================================
   // OPEN ADD MODAL
   // =====================================================
 
   const openAddModal = () => {
-
     setEditingExpense(null);
 
     setFormData({
@@ -237,21 +222,14 @@ function Expenses() {
     setShowModal(true);
   };
 
-
   // =====================================================
   // OPEN EDIT MODAL
   // =====================================================
 
-  const openEditModal = (
-    expense
-  ) => {
-
-    setEditingExpense(
-      expense
-    );
+  const openEditModal = (expense) => {
+    setEditingExpense(expense);
 
     setFormData({
-
       category:
         expense.category || "",
 
@@ -266,6 +244,7 @@ function Expenses() {
 
       date:
         expense.date ||
+        expense.expense_date ||
         new Date()
           .toISOString()
           .split("T")[0],
@@ -274,19 +253,16 @@ function Expenses() {
         expense.remark === "-"
           ? ""
           : expense.remark || "",
-
     });
 
     setShowModal(true);
   };
-
 
   // =====================================================
   // CLOSE ADD / EDIT MODAL
   // =====================================================
 
   const closeModal = () => {
-
     setShowModal(false);
 
     setEditingExpense(null);
@@ -296,15 +272,11 @@ function Expenses() {
     });
   };
 
-
   // =====================================================
   // HANDLE INPUT
   // =====================================================
 
-  const handleChange = (
-    event
-  ) => {
-
+  const handleChange = (event) => {
     const {
       name,
       value,
@@ -318,22 +290,18 @@ function Expenses() {
     );
   };
 
-
   // =====================================================
   // SAVE EXPENSE
   // =====================================================
 
-  const handleSubmit = (
+  const handleSubmit = async (
     event
   ) => {
-
     event.preventDefault();
-
 
     if (
       !formData.category.trim()
     ) {
-
       alert(
         "कृपया Expense Category भरा."
       );
@@ -341,12 +309,10 @@ function Expenses() {
       return;
     }
 
-
     if (
       !formData.amount ||
       Number(formData.amount) <= 0
     ) {
-
       alert(
         "कृपया योग्य Expense Amount भरा."
       );
@@ -354,50 +320,42 @@ function Expenses() {
       return;
     }
 
-
     try {
-
       if (editingExpense) {
-
-        updateExpense(
+        await updateExpense(
           editingExpense.id,
           formData
         );
-
       } else {
-
-        addExpense(
+        await addExpense(
           formData
         );
-
       }
-
 
       closeModal();
 
-      loadExpenses();
+      await loadExpenses();
 
     } catch (error) {
-
-      console.error(error);
+      console.error(
+        "Expense save error:",
+        error
+      );
 
       alert(
         error.message ||
-        "Expense save करताना error आला."
+          "Expense save करताना error आला."
       );
-
     }
   };
-
 
   // =====================================================
   // DELETE
   // =====================================================
 
-  const handleDelete = (
+  const handleDelete = async (
     expense
   ) => {
-
     const confirmed =
       window.confirm(
         `तुम्हाला "${expense.category}" चा ₹${Number(
@@ -407,39 +365,43 @@ function Expenses() {
         )} expense delete करायचा आहे का?`
       );
 
-
     if (!confirmed) {
       return;
     }
 
-
     try {
-
-      deleteExpense(
+      await deleteExpense(
         expense.id
       );
 
-      loadExpenses();
+      await loadExpenses();
 
     } catch (error) {
-
-      console.error(error);
-
-      alert(
-        "Expense delete करताना error आला."
+      console.error(
+        "Expense delete error:",
+        error
       );
 
+      alert(
+        error.message ||
+          "Expense delete करताना error आला."
+      );
     }
   };
-
 
   // =====================================================
   // TOTAL
   // =====================================================
 
   const totalExpense =
-    getTotalExpense();
-
+    expenses.reduce(
+      (total, expense) =>
+        total +
+        Number(
+          expense.amount || 0
+        ),
+      0
+    );
 
   const filteredTotal =
     filteredExpenses.reduce(
@@ -454,33 +416,25 @@ function Expenses() {
       0
     );
 
-
   // =====================================================
   // FORMAT DATE
   // =====================================================
 
-  const formatDate = (
-    date
-  ) => {
-
+  const formatDate = (date) => {
     if (!date) {
       return "-";
     }
 
-
     const value =
       new Date(date);
-
 
     if (
       Number.isNaN(
         value.getTime()
       )
     ) {
-
       return date;
     }
-
 
     return value.toLocaleDateString(
       "en-IN",
@@ -492,7 +446,6 @@ function Expenses() {
     );
   };
 
-
   // =====================================================
   // VIEW EXPENSE
   // =====================================================
@@ -500,24 +453,20 @@ function Expenses() {
   const openViewExpense = (
     expense
   ) => {
-
     setViewingExpense(
       expense
     );
   };
-
 
   // =====================================================
   // CLOSE VIEW
   // =====================================================
 
   const closeViewExpense = () => {
-
     setViewingExpense(
       null
     );
   };
-
 
   // =====================================================
   // WHATSAPP EXPENSE
@@ -526,7 +475,6 @@ function Expenses() {
   const sendExpenseWhatsApp = (
     expense
   ) => {
-
     const message = `
 🙏 ${mandalConfig?.name || "मंडळ"}
 
@@ -534,10 +482,21 @@ ${mandalConfig?.tagline || ""}
 
 💸 खर्च नोंद
 
-Expense ID: ${expense.id}
+Expense ID: ${
+      expense.expense_id ||
+      expense.expenseId ||
+      expense.id ||
+      "-"
+    }
 
-Category: ${expense.category}
-Description: ${expense.description || "-"}
+Category: ${
+      expense.category || "-"
+    }
+
+Description: ${
+      expense.description || "-"
+    }
+
 Amount: ₹${Number(
       expense.amount || 0
     ).toLocaleString("en-IN")}
@@ -547,7 +506,8 @@ Payment Mode: ${
     }
 
 Date: ${formatDate(
-      expense.date
+      expense.date ||
+        expense.expense_date
     )}
 
 Remark: ${
@@ -565,12 +525,10 @@ ${
 }
     `.trim();
 
-
     const whatsappUrl =
       `https://wa.me/?text=${encodeURIComponent(
         message
       )}`;
-
 
     window.open(
       whatsappUrl,
@@ -579,7 +537,6 @@ ${
     );
   };
 
-
   // =====================================================
   // PRINT EXPENSE
   // =====================================================
@@ -587,7 +544,6 @@ ${
   const printExpense = (
     expense
   ) => {
-
     const printWindow =
       window.open(
         "",
@@ -595,9 +551,7 @@ ${
         "width=800,height=900"
       );
 
-
     if (!printWindow) {
-
       alert(
         "Print window blocked आहे. Browser मध्ये pop-up allow करा."
       );
@@ -605,21 +559,17 @@ ${
       return;
     }
 
-
     const mandalName =
       mandalConfig?.name ||
       "मंडळ";
-
 
     const tagline =
       mandalConfig?.tagline ||
       "";
 
-
     const address =
       mandalConfig?.address ||
       "";
-
 
     const amount =
       Number(
@@ -628,12 +578,15 @@ ${
         "en-IN"
       );
 
+    const expenseId =
+      expense.expense_id ||
+      expense.expenseId ||
+      expense.id ||
+      "-";
 
     printWindow.document.open();
 
-
     printWindow.document.write(`
-
       <!DOCTYPE html>
 
       <html lang="mr">
@@ -643,9 +596,8 @@ ${
         <meta charset="UTF-8" />
 
         <title>
-          Expense ${expense.id}
+          Expense ${expenseId}
         </title>
-
 
         <style>
 
@@ -653,12 +605,10 @@ ${
             box-sizing: border-box;
           }
 
-
           @page {
             size: A5 portrait;
             margin: 10mm;
           }
-
 
           html,
           body {
@@ -667,9 +617,7 @@ ${
             background: #fff;
           }
 
-
           body {
-
             font-family:
               Arial,
               "Noto Sans Devanagari",
@@ -679,90 +627,58 @@ ${
             color: #172033;
           }
 
-
           .expense-print {
-
             width: 100%;
-
             max-width: 600px;
-
             margin: 0 auto;
-
             padding: 30px;
 
             border:
               1px solid #dfe4ea;
 
             border-radius: 12px;
-
             background: #fff;
           }
 
-
           .print-header {
-
             text-align: center;
-
             padding-bottom: 18px;
 
             border-bottom:
               2px solid #ef4444;
           }
 
-
           .print-header h1 {
-
             margin: 0;
-
             font-size: 25px;
           }
 
-
           .print-header p {
-
             margin: 5px 0;
-
             color: #64748b;
-
             font-size: 13px;
           }
 
-
           .print-header h2 {
-
             margin-top: 12px;
-
             font-size: 20px;
           }
 
-
           .expense-id {
-
             text-align: right;
-
             padding: 15px 0;
-
             font-size: 13px;
-
             color: #64748b;
           }
 
-
           .expense-id strong {
-
             color: #172033;
-
             margin-left: 5px;
           }
 
-
           .print-row {
-
             display: flex;
-
-            justify-content:
-              space-between;
-
+            justify-content: space-between;
             gap: 20px;
 
             padding: 13px 0;
@@ -773,80 +689,53 @@ ${
             font-size: 14px;
           }
 
-
           .print-row span {
-
             color: #64748b;
           }
 
-
           .print-row strong {
-
             color: #172033;
-
             text-align: right;
           }
 
-
           .print-amount {
-
             text-align: center;
-
             margin-top: 25px;
           }
 
-
           .print-amount span {
-
             display: block;
-
             color: #64748b;
-
             font-size: 13px;
           }
 
-
           .print-amount strong {
-
             display: block;
-
             margin-top: 5px;
-
             color: #dc2626;
-
             font-size: 34px;
           }
 
-
           .print-thanks {
-
             text-align: center;
-
             margin-top: 25px;
-
             color: #64748b;
-
             font-size: 13px;
           }
 
-
           @media print {
-
             body {
-
               -webkit-print-color-adjust:
                 exact;
 
               print-color-adjust:
                 exact;
             }
-
           }
 
         </style>
 
       </head>
-
 
       <body>
 
@@ -870,17 +759,15 @@ ${
 
           </div>
 
-
           <div class="expense-id">
 
             Expense ID:
 
             <strong>
-              ${expense.id}
+              ${expenseId}
             </strong>
 
           </div>
-
 
           <div class="print-row">
 
@@ -889,11 +776,13 @@ ${
             </span>
 
             <strong>
-              ${expense.category || "-"}
+              ${
+                expense.category ||
+                "-"
+              }
             </strong>
 
           </div>
-
 
           <div class="print-row">
 
@@ -902,11 +791,13 @@ ${
             </span>
 
             <strong>
-              ${expense.description || "-"}
+              ${
+                expense.description ||
+                "-"
+              }
             </strong>
 
           </div>
-
 
           <div class="print-row">
 
@@ -915,11 +806,13 @@ ${
             </span>
 
             <strong>
-              ${expense.mode || "Cash"}
+              ${
+                expense.mode ||
+                "Cash"
+              }
             </strong>
 
           </div>
-
 
           <div class="print-row">
 
@@ -929,12 +822,12 @@ ${
 
             <strong>
               ${formatDate(
-                expense.date
+                expense.date ||
+                  expense.expense_date
               )}
             </strong>
 
           </div>
-
 
           <div class="print-row">
 
@@ -943,11 +836,13 @@ ${
             </span>
 
             <strong>
-              ${expense.remark || "-"}
+              ${
+                expense.remark ||
+                "-"
+              }
             </strong>
 
           </div>
-
 
           <div class="print-amount">
 
@@ -961,7 +856,6 @@ ${
 
           </div>
 
-
           <div class="print-thanks">
 
             ${address}
@@ -973,7 +867,6 @@ ${
           </div>
 
         </div>
-
 
         <script>
 
@@ -991,7 +884,6 @@ ${
             );
 
           };
-
 
           window.onafterprint =
             function () {
@@ -1012,22 +904,17 @@ ${
       </body>
 
       </html>
-
     `);
-
 
     printWindow.document.close();
   };
-
 
   // =====================================================
   // RETURN
   // =====================================================
 
   return (
-
     <div className="expenses-page">
-
 
       {/* =================================================
           HEADER
@@ -1047,17 +934,12 @@ ${
 
         </div>
 
-
         <button
           className="add-expense-btn"
-          onClick={
-            openAddModal
-          }
+          onClick={openAddModal}
         >
 
-          <Plus
-            size={17}
-          />
+          <Plus size={17} />
 
           खर्च नोंदवा
 
@@ -1065,21 +947,17 @@ ${
 
       </div>
 
-
       {/* =================================================
           SUMMARY
       ================================================= */}
 
       <div className="expense-summary">
 
-
         <div className="expense-summary-card">
 
           <div className="expense-summary-icon red">
 
-            <IndianRupee
-              size={20}
-            />
+            <IndianRupee size={20} />
 
           </div>
 
@@ -1100,14 +978,11 @@ ${
 
         </div>
 
-
         <div className="expense-summary-card">
 
           <div className="expense-summary-icon orange">
 
-            <ReceiptText
-              size={20}
-            />
+            <ReceiptText size={20} />
 
           </div>
 
@@ -1125,14 +1000,11 @@ ${
 
         </div>
 
-
         <div className="expense-summary-card">
 
           <div className="expense-summary-icon blue">
 
-            <Wallet
-              size={20}
-            />
+            <Wallet size={20} />
 
           </div>
 
@@ -1155,19 +1027,15 @@ ${
 
       </div>
 
-
       {/* =================================================
           FILTER BAR
       ================================================= */}
 
       <div className="expense-filter-card">
 
-
         <div className="expense-search">
 
-          <Search
-            size={17}
-          />
+          <Search size={17} />
 
           <input
             type="text"
@@ -1182,11 +1050,8 @@ ${
 
         </div>
 
-
         <select
-          value={
-            categoryFilter
-          }
+          value={categoryFilter}
           onChange={(event) =>
             setCategoryFilter(
               event.target.value
@@ -1213,11 +1078,8 @@ ${
 
         </select>
 
-
         <select
-          value={
-            modeFilter
-          }
+          value={modeFilter}
           onChange={(event) =>
             setModeFilter(
               event.target.value
@@ -1243,12 +1105,9 @@ ${
 
         </select>
 
-
         <button
           className="expense-refresh-btn"
-          onClick={
-            loadExpenses
-          }
+          onClick={loadExpenses}
           title="Refresh"
         >
 
@@ -1265,13 +1124,11 @@ ${
 
       </div>
 
-
       {/* =================================================
           TABLE
       ================================================= */}
 
       <div className="expense-table-card">
-
 
         <div className="expense-table-header">
 
@@ -1291,14 +1148,11 @@ ${
 
         </div>
 
-
         {filteredExpenses.length === 0 ? (
 
           <div className="expense-empty">
 
-            <ReceiptText
-              size={35}
-            />
+            <ReceiptText size={35} />
 
             <strong>
               कोणताही खर्च सापडला नाही
@@ -1353,7 +1207,6 @@ ${
 
               </thead>
 
-
               <tbody>
 
                 {filteredExpenses.map(
@@ -1367,14 +1220,17 @@ ${
 
                       <td>
 
-                        <span
-                          className="expense-id"
-                        >
-                          {expense.id}
+                        <span className="expense-id">
+
+                          {
+                            expense.expense_id ||
+                            expense.expenseId ||
+                            expense.id
+                          }
+
                         </span>
 
                       </td>
-
 
                       <td>
 
@@ -1386,26 +1242,22 @@ ${
 
                       </td>
 
-
                       <td>
 
-                        <span
-                          className="expense-description"
-                        >
+                        <span className="expense-description">
+
                           {
                             expense.description ||
                             "-"
                           }
+
                         </span>
 
                       </td>
 
-
                       <td>
 
-                        <strong
-                          className="expense-amount"
-                        >
+                        <strong className="expense-amount">
 
                           ₹
                           {Number(
@@ -1418,13 +1270,12 @@ ${
 
                       </td>
 
-
                       <td>
 
                         <span
                           className={`expense-mode ${String(
                             expense.mode ||
-                            "Cash"
+                              "Cash"
                           ).toLowerCase()}`}
                         >
 
@@ -1437,12 +1288,9 @@ ${
 
                       </td>
 
-
                       <td>
 
-                        <span
-                          className="expense-date"
-                        >
+                        <span className="expense-date">
 
                           <CalendarDays
                             size={13}
@@ -1450,7 +1298,8 @@ ${
 
                           {
                             formatDate(
-                              expense.date
+                              expense.date ||
+                                expense.expense_date
                             )
                           }
 
@@ -1458,14 +1307,9 @@ ${
 
                       </td>
 
-
-                      {/* ACTIONS */}
-
                       <td>
 
-                        <div
-                          className="expense-actions"
-                        >
+                        <div className="expense-actions">
 
                           {/* VIEW */}
 
@@ -1480,12 +1324,9 @@ ${
                             title="View"
                           >
 
-                            <Eye
-                              size={15}
-                            />
+                            <Eye size={15} />
 
                           </button>
-
 
                           {/* EDIT */}
 
@@ -1500,12 +1341,9 @@ ${
                             title="Edit"
                           >
 
-                            <Pencil
-                              size={15}
-                            />
+                            <Pencil size={15} />
 
                           </button>
-
 
                           {/* DELETE */}
 
@@ -1520,9 +1358,7 @@ ${
                             title="Delete"
                           >
 
-                            <Trash2
-                              size={15}
-                            />
+                            <Trash2 size={15} />
 
                           </button>
 
@@ -1544,7 +1380,6 @@ ${
         )}
 
       </div>
-
 
       {/* =================================================
           ADD / EDIT MODAL
@@ -1568,15 +1403,11 @@ ${
           }}
         >
 
-          <div
-            className="expense-modal"
-          >
+          <div className="expense-modal">
 
             {/* HEADER */}
 
-            <div
-              className="expense-modal-header"
-            >
+            <div className="expense-modal-header">
 
               <div>
 
@@ -1598,7 +1429,6 @@ ${
 
               </div>
 
-
               <button
                 type="button"
                 className="expense-close-btn"
@@ -1607,14 +1437,11 @@ ${
                 }
               >
 
-                <X
-                  size={19}
-                />
+                <X size={19} />
 
               </button>
 
             </div>
-
 
             {/* FORM */}
 
@@ -1627,9 +1454,7 @@ ${
 
               {/* CATEGORY */}
 
-              <div
-                className="expense-form-group"
-              >
+              <div className="expense-form-group">
 
                 <label>
 
@@ -1696,12 +1521,9 @@ ${
 
               </div>
 
-
               {/* DESCRIPTION */}
 
-              <div
-                className="expense-form-group"
-              >
+              <div className="expense-form-group">
 
                 <label>
                   Description
@@ -1721,12 +1543,9 @@ ${
 
               </div>
 
-
               {/* AMOUNT */}
 
-              <div
-                className="expense-form-group"
-              >
+              <div className="expense-form-group">
 
                 <label>
 
@@ -1738,9 +1557,7 @@ ${
 
                 </label>
 
-                <div
-                  className="amount-input-wrapper"
-                >
+                <div className="amount-input-wrapper">
 
                   <span>
                     ₹
@@ -1765,12 +1582,9 @@ ${
 
               </div>
 
-
               {/* MODE */}
 
-              <div
-                className="expense-form-group"
-              >
+              <div className="expense-form-group">
 
                 <label>
                   Payment Mode
@@ -1802,12 +1616,9 @@ ${
 
               </div>
 
-
               {/* DATE */}
 
-              <div
-                className="expense-form-group"
-              >
+              <div className="expense-form-group">
 
                 <label>
                   Date
@@ -1826,12 +1637,9 @@ ${
 
               </div>
 
-
               {/* REMARK */}
 
-              <div
-                className="expense-form-group"
-              >
+              <div className="expense-form-group">
 
                 <label>
                   Remark
@@ -1851,12 +1659,9 @@ ${
 
               </div>
 
-
               {/* ACTIONS */}
 
-              <div
-                className="expense-modal-actions"
-              >
+              <div className="expense-modal-actions">
 
                 <button
                   type="button"
@@ -1867,7 +1672,6 @@ ${
                 >
                   Cancel
                 </button>
-
 
                 <button
                   type="submit"
@@ -1889,7 +1693,6 @@ ${
         </div>
 
       )}
-
 
       {/* =================================================
           VIEW EXPENSE MODAL
@@ -1922,9 +1725,7 @@ ${
 
             {/* VIEW HEADER */}
 
-            <div
-              className="expense-view-header"
-            >
+            <div className="expense-view-header">
 
               <div>
 
@@ -1933,12 +1734,13 @@ ${
                 </h2>
 
                 <p>
-                  {mandalConfig?.name ||
-                    "मंडळ"}
+                  {
+                    mandalConfig?.name ||
+                    "मंडळ"
+                  }
                 </p>
 
               </div>
-
 
               <button
                 type="button"
@@ -1948,34 +1750,27 @@ ${
                 }
               >
 
-                <X
-                  size={19}
-                />
+                <X size={19} />
 
               </button>
 
             </div>
 
-
             {/* EXPENSE PAPER */}
 
-            <div
-              className="expense-view-paper"
-            >
+            <div className="expense-view-paper">
 
-              <div
-                className="expense-view-title"
-              >
+              <div className="expense-view-title">
 
-                <div
-                  className="expense-view-icon"
-                >
+                <div className="expense-view-icon">
                   💸
                 </div>
 
                 <h1>
-                  {mandalConfig?.name ||
-                    "मंडळ"}
+                  {
+                    mandalConfig?.name ||
+                    "मंडळ"
+                  }
                 </h1>
 
                 {mandalConfig?.tagline && (
@@ -1994,12 +1789,9 @@ ${
 
               </div>
 
-
               {/* EXPENSE ID */}
 
-              <div
-                className="expense-view-id"
-              >
+              <div className="expense-view-id">
 
                 <span>
                   Expense ID
@@ -2007,18 +1799,17 @@ ${
 
                 <strong>
                   {
+                    viewingExpense.expense_id ||
+                    viewingExpense.expenseId ||
                     viewingExpense.id
                   }
                 </strong>
 
               </div>
 
-
               {/* CATEGORY */}
 
-              <div
-                className="expense-view-row"
-              >
+              <div className="expense-view-row">
 
                 <span>
                   Category
@@ -2033,12 +1824,9 @@ ${
 
               </div>
 
-
               {/* DESCRIPTION */}
 
-              <div
-                className="expense-view-row"
-              >
+              <div className="expense-view-row">
 
                 <span>
                   Description
@@ -2053,12 +1841,9 @@ ${
 
               </div>
 
-
               {/* PAYMENT MODE */}
 
-              <div
-                className="expense-view-row"
-              >
+              <div className="expense-view-row">
 
                 <span>
                   Payment Mode
@@ -2073,12 +1858,9 @@ ${
 
               </div>
 
-
               {/* DATE */}
 
-              <div
-                className="expense-view-row"
-              >
+              <div className="expense-view-row">
 
                 <span>
                   Date
@@ -2087,19 +1869,17 @@ ${
                 <strong>
                   {
                     formatDate(
-                      viewingExpense.date
+                      viewingExpense.date ||
+                        viewingExpense.expense_date
                     )
                   }
                 </strong>
 
               </div>
 
-
               {/* REMARK */}
 
-              <div
-                className="expense-view-row"
-              >
+              <div className="expense-view-row">
 
                 <span>
                   Remark
@@ -2114,12 +1894,9 @@ ${
 
               </div>
 
-
               {/* AMOUNT */}
 
-              <div
-                className="expense-view-total"
-              >
+              <div className="expense-view-total">
 
                 <span>
                   एकूण खर्च
@@ -2129,7 +1906,7 @@ ${
                   ₹
                   {Number(
                     viewingExpense.amount ||
-                    0
+                      0
                   ).toLocaleString(
                     "en-IN"
                   )}
@@ -2137,23 +1914,15 @@ ${
 
               </div>
 
-
-              <div
-                className="expense-view-thanks"
-              >
-
+              <div className="expense-view-thanks">
                 धन्यवाद! 🙏
-
               </div>
 
             </div>
 
-
             {/* VIEW ACTIONS */}
 
-            <div
-              className="expense-view-actions"
-            >
+            <div className="expense-view-actions">
 
               <button
                 type="button"
@@ -2162,11 +1931,8 @@ ${
                   closeViewExpense
                 }
               >
-
                 Close
-
               </button>
-
 
               <button
                 type="button"
@@ -2178,14 +1944,11 @@ ${
                 }
               >
 
-                <MessageCircle
-                  size={16}
-                />
+                <MessageCircle size={16} />
 
                 WhatsApp
 
               </button>
-
 
               <button
                 type="button"
@@ -2197,9 +1960,7 @@ ${
                 }
               >
 
-                <Printer
-                  size={16}
-                />
+                <Printer size={16} />
 
                 Print
 
@@ -2216,6 +1977,5 @@ ${
     </div>
   );
 }
-
 
 export default Expenses;

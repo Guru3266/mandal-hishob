@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   IndianRupee,
@@ -14,44 +10,14 @@ import {
   CalendarDays,
 } from "lucide-react";
 
+import { supabase } from "../lib/supabase";
+import { getDashboardData } from "../utils/supabaseDashboard";
+
 import "./Transparency.css";
 
 
 /* =========================================================
    HELPERS
-========================================================= */
-
-function readStorage(key) {
-  try {
-    const data =
-      localStorage.getItem(key);
-
-    if (!data) {
-      return [];
-    }
-
-    const parsed =
-      JSON.parse(data);
-
-    return Array.isArray(parsed)
-      ? parsed
-      : [];
-
-  } catch (error) {
-
-    console.error(
-      `Unable to read ${key}`,
-      error
-    );
-
-    return [];
-
-  }
-}
-
-
-/* =========================================================
-   AMOUNT
 ========================================================= */
 
 function getAmount(value) {
@@ -65,49 +31,14 @@ function getAmount(value) {
 }
 
 
-/* =========================================================
-   MONEY
-========================================================= */
-
 function money(value) {
 
-  return getAmount(
+  return `₹${getAmount(
     value
-  )
-    .toLocaleString(
-      "en-IN"
-    );
+  ).toLocaleString("en-IN")}`;
 
 }
 
-
-/* =========================================================
-   SIGNED MONEY
-========================================================= */
-
-function signedMoney(value) {
-
-  const amount =
-    getAmount(value);
-
-  if (amount < 0) {
-
-    return `-₹${Math.abs(
-      amount
-    ).toLocaleString("en-IN")}`;
-
-  }
-
-  return `₹${amount.toLocaleString(
-    "en-IN"
-  )}`;
-
-}
-
-
-/* =========================================================
-   DATE FORMAT
-========================================================= */
 
 function formatDate(dateValue) {
 
@@ -115,10 +46,8 @@ function formatDate(dateValue) {
     return "-";
   }
 
-
   const date =
     new Date(dateValue);
-
 
   if (
     Number.isNaN(
@@ -126,12 +55,9 @@ function formatDate(dateValue) {
     )
   ) {
 
-    return String(
-      dateValue
-    );
+    return dateValue;
 
   }
-
 
   return date.toLocaleDateString(
     "en-GB",
@@ -146,117 +72,109 @@ function formatDate(dateValue) {
 
 
 /* =========================================================
-   DATE SORT VALUE
-========================================================= */
-
-function getDateValue(value) {
-
-  if (!value) {
-    return 0;
-  }
-
-
-  const date =
-    new Date(value);
-
-
-  const time =
-    date.getTime();
-
-
-  return Number.isNaN(time)
-    ? 0
-    : time;
-
-}
-
-
-/* =========================================================
    TRANSPARENCY
 ========================================================= */
 
 function Transparency() {
 
-  const [
-    members,
-    setMembers,
-  ] = useState([]);
+  const [members, setMembers] =
+    useState([]);
 
+  const [payments, setPayments] =
+    useState([]);
 
-  const [
-    payments,
-    setPayments,
-  ] = useState([]);
+  const [expenses, setExpenses] =
+    useState([]);
 
-
-  const [
-    expenses,
-    setExpenses,
-  ] = useState([]);
-
-
-  const [
-    selectedMonth,
-    setSelectedMonth,
-  ] = useState("");
+  const [selectedMonth, setSelectedMonth] =
+    useState("");
 
 
   /* =======================================================
      LOAD DATA
   ======================================================= */
 
-  const loadData = () => {
+  const [loading, setLoading] = useState(true);
 
-    setMembers(
-      readStorage(
-        "mandal_members"
-      )
-    );
+  const [refreshing, setRefreshing] = useState(false);
 
+  const loadData = async () => {
+    try {
+      setLoading(true);
 
-    setPayments(
-      readStorage(
-        "mandal_collections"
-      )
-    );
+      const {
+        members: memberData,
+        payments,
+        expenses: expenseData,
+      } = await getDashboardData();
 
-
-    setExpenses(
-      readStorage(
-        "mandal_expenses"
-      )
-    );
-
+      setMembers(Array.isArray(memberData) ? memberData : []);
+      setPayments(Array.isArray(payments) ? payments : []);
+      setExpenses(Array.isArray(expenseData) ? expenseData : []);
+    } catch (error) {
+      console.error("Transparency loading error:", error);
+      setMembers([]);
+      setPayments([]);
+      setExpenses([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-
-  /* =======================================================
-     INITIAL LOAD + LIVE UPDATE
-  ======================================================= */
 
   useEffect(() => {
 
     loadData();
 
-
     const handleUpdate = () => {
-
       loadData();
-
     };
-
 
     window.addEventListener(
       "mandal-data-updated",
       handleUpdate
     );
 
-
     window.addEventListener(
-      "storage",
+      "mandalDataUpdated",
       handleUpdate
     );
 
+    const channel = supabase
+      .channel("transparency-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "members",
+        },
+        handleUpdate
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "collections",
+        },
+        handleUpdate
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "expenses",
+        },
+        handleUpdate
+      )
+      .subscribe((status) => {
+        console.log(
+          "Transparency realtime status:",
+          status
+        );
+      });
 
     return () => {
 
@@ -265,15 +183,30 @@ function Transparency() {
         handleUpdate
       );
 
-
       window.removeEventListener(
-        "storage",
+        "mandalDataUpdated",
         handleUpdate
       );
+
+      supabase.removeChannel(channel);
 
     };
 
   }, []);
+
+
+  const handleRefresh = async () => {
+
+    try {
+      setRefreshing(true);
+      await loadData();
+    } finally {
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 400);
+    }
+
+  };
 
 
   /* =======================================================
@@ -290,35 +223,18 @@ function Transparency() {
     }
 
 
-    const dateValue =
-      item?.[dateField];
-
+    const dateValue = item[dateField];
 
     if (!dateValue) {
       return false;
     }
 
+    const normalizedDate = String(dateValue).slice(0, 10);
 
-    /*
-      Expected month value:
-      2026-08
-
-      Date:
-      2026-08-18
-    */
-
-    return String(
-      dateValue
-    ).startsWith(
-      selectedMonth
-    );
+    return normalizedDate.startsWith(selectedMonth);
 
   };
 
-
-  /* =======================================================
-     FILTERED COLLECTIONS
-  ======================================================= */
 
   const filteredPayments =
     useMemo(() => {
@@ -336,10 +252,6 @@ function Transparency() {
       selectedMonth,
     ]);
 
-
-  /* =======================================================
-     FILTERED EXPENSES
-  ======================================================= */
 
   const filteredExpenses =
     useMemo(() => {
@@ -359,7 +271,7 @@ function Transparency() {
 
 
   /* =======================================================
-     TOTAL COLLECTION
+     TOTALS
   ======================================================= */
 
   const totalCollection =
@@ -367,46 +279,28 @@ function Transparency() {
       (
         total,
         payment
-      ) => {
-
-        return (
-          total +
-          getAmount(
-            payment.amount
-          )
-        );
-
-      },
+      ) =>
+        total +
+        getAmount(
+          payment.amount
+        ),
       0
     );
 
-
-  /* =======================================================
-     TOTAL EXPENSE
-  ======================================================= */
 
   const totalExpense =
     filteredExpenses.reduce(
       (
         total,
         expense
-      ) => {
-
-        return (
-          total +
-          getAmount(
-            expense.amount
-          )
-        );
-
-      },
+      ) =>
+        total +
+        getAmount(
+          expense.amount
+        ),
       0
     );
 
-
-  /* =======================================================
-     BALANCE
-  ======================================================= */
 
   const balance =
     totalCollection -
@@ -418,47 +312,7 @@ function Transparency() {
   ======================================================= */
 
   const paidMembers =
-    members.filter(
-      (member) => {
-
-        const expected =
-          getAmount(
-            member.expected
-          );
-
-
-        const paid =
-          filteredPayments
-            .filter(
-              (payment) =>
-                payment.memberId ===
-                member.id
-            )
-            .reduce(
-              (
-                total,
-                payment
-              ) => {
-
-                return (
-                  total +
-                  getAmount(
-                    payment.amount
-                  )
-                );
-
-              },
-              0
-            );
-
-
-        return (
-          expected > 0 &&
-          paid >= expected
-        );
-
-      }
-    ).length;
+    filteredPayments.length;
 
 
   const totalMembers =
@@ -470,10 +324,9 @@ function Transparency() {
       ? Math.min(
           100,
           Math.round(
-            (
-              paidMembers /
-              totalMembers
-            ) * 100
+            (paidMembers /
+              totalMembers) *
+              100
           )
         )
       : 0;
@@ -483,28 +336,16 @@ function Transparency() {
      PAYMENT MODES
   ======================================================= */
 
-  const getPaymentMode = (
-    payment
-  ) => {
-
-    return String(
-      payment.mode ||
-      payment.paymentMode ||
-      "Cash"
-    )
-      .trim()
-      .toLowerCase();
-
-  };
-
-
   const cashCollection =
     filteredPayments
       .filter(
         (payment) =>
-          getPaymentMode(
-            payment
-          ) === "cash"
+          String(
+            payment.mode ||
+            payment.paymentMode ||
+            "Cash"
+          ).trim().toLowerCase() ===
+          "cash"
       )
       .reduce(
         (
@@ -523,9 +364,12 @@ function Transparency() {
     filteredPayments
       .filter(
         (payment) =>
-          getPaymentMode(
-            payment
-          ) === "upi"
+          String(
+            payment.mode ||
+            payment.paymentMode ||
+            ""
+          ).trim().toLowerCase() ===
+          "upi"
       )
       .reduce(
         (
@@ -544,9 +388,13 @@ function Transparency() {
     filteredPayments
       .filter(
         (payment) =>
-          getPaymentMode(
-            payment
-          ) === "bank"
+          ["bank", "bank transfer", "banktransfer"].includes(
+          String(
+            payment.mode ||
+            payment.paymentMode ||
+            ""
+          ).trim().toLowerCase()
+        )
       )
       .reduce(
         (
@@ -566,52 +414,17 @@ function Transparency() {
   ======================================================= */
 
   const recentCollections =
-    useMemo(() => {
-
-      return [
-        ...filteredPayments,
-      ]
-        .sort(
-          (a, b) => {
-
-            const dateDifference =
-              getDateValue(
-                b.date
-              ) -
-              getDateValue(
-                a.date
-              );
-
-
-            if (
-              dateDifference !== 0
-            ) {
-
-              return dateDifference;
-
-            }
-
-
-            return (
-              String(
-                b.id || ""
-              ).localeCompare(
-                String(
-                  a.id || ""
-                )
-              )
-            );
-
-          }
-        )
-        .slice(
-          0,
-          5
-        );
-
-    }, [
-      filteredPayments,
-    ]);
+    [...filteredPayments]
+      .sort(
+        (a, b) =>
+          new Date(
+            b.date || 0
+          ) -
+          new Date(
+            a.date || 0
+          )
+      )
+      .slice(0, 5);
 
 
   /* =======================================================
@@ -619,68 +432,18 @@ function Transparency() {
   ======================================================= */
 
   const recentExpenses =
-    useMemo(() => {
+    [...filteredExpenses]
+      .sort(
+        (a, b) =>
+          new Date(
+            b.date || 0
+          ) -
+          new Date(
+            a.date || 0
+          )
+      )
+      .slice(0, 5);
 
-      return [
-        ...filteredExpenses,
-      ]
-        .sort(
-          (a, b) => {
-
-            const dateDifference =
-              getDateValue(
-                b.date
-              ) -
-              getDateValue(
-                a.date
-              );
-
-
-            if (
-              dateDifference !== 0
-            ) {
-
-              return dateDifference;
-
-            }
-
-
-            return (
-              String(
-                b.id || ""
-              ).localeCompare(
-                String(
-                  a.id || ""
-                )
-              )
-            );
-
-          }
-        )
-        .slice(
-          0,
-          5
-        );
-
-    }, [
-      filteredExpenses,
-    ]);
-
-
-  /* =======================================================
-     CLEAR MONTH
-  ======================================================= */
-
-  const clearMonth = () => {
-
-    setSelectedMonth("");
-
-  };
-
-
-  /* =======================================================
-     RENDER
-  ======================================================= */
 
   return (
 
@@ -708,15 +471,11 @@ function Transparency() {
 
         <div className="transparency-date">
 
-          <CalendarDays
-            size={16}
-          />
+          <CalendarDays size={16} />
 
           <input
             type="month"
-            value={
-              selectedMonth
-            }
+            value={selectedMonth}
             onChange={(event) =>
               setSelectedMonth(
                 event.target.value
@@ -724,24 +483,38 @@ function Transparency() {
             }
           />
 
-
-          {selectedMonth && (
-
-            <button
-              type="button"
-              className="transparency-clear"
-              onClick={
-                clearMonth
-              }
-            >
-              Clear
-            </button>
-
-          )}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            title="Refresh"
+            style={{
+              border: "1px solid #dbe3ef",
+              background: "#fff",
+              borderRadius: "8px",
+              padding: "7px 10px",
+              cursor: refreshing ? "not-allowed" : "pointer",
+              opacity: refreshing ? 0.6 : 1,
+            }}
+          >
+            ↻
+          </button>
 
         </div>
 
       </div>
+
+      {loading && (
+        <div
+          style={{
+            padding: "8px 0",
+            color: "#64748b",
+            fontSize: "13px",
+          }}
+        >
+          आर्थिक माहिती load होत आहे...
+        </div>
+      )}
 
 
       {/* =================================================
@@ -752,9 +525,7 @@ function Transparency() {
 
         <div className="transparency-balance-icon">
 
-          <Wallet
-            size={28}
-          />
+          <Wallet size={28} />
 
         </div>
 
@@ -765,7 +536,6 @@ function Transparency() {
             उपलब्ध शिल्लक
           </span>
 
-
           <strong
             className={
               balance >= 0
@@ -773,13 +543,8 @@ function Transparency() {
                 : "negative"
             }
           >
-
-            {signedMoney(
-              balance
-            )}
-
+            {money(balance)}
           </strong>
-
 
           <p>
             एकूण जमा − एकूण खर्च
@@ -809,7 +574,6 @@ function Transparency() {
 
           </div>
 
-
           <div>
 
             <span>
@@ -817,20 +581,15 @@ function Transparency() {
             </span>
 
             <strong className="green-text">
-
-              ₹
               {money(
                 totalCollection
               )}
-
             </strong>
 
             <small>
-
               {filteredPayments.length}
               {" "}
               transactions
-
             </small>
 
           </div>
@@ -850,7 +609,6 @@ function Transparency() {
 
           </div>
 
-
           <div>
 
             <span>
@@ -858,20 +616,15 @@ function Transparency() {
             </span>
 
             <strong className="red-text">
-
-              ₹
               {money(
                 totalExpense
               )}
-
             </strong>
 
             <small>
-
               {filteredExpenses.length}
               {" "}
               transactions
-
             </small>
 
           </div>
@@ -890,7 +643,6 @@ function Transparency() {
             />
 
           </div>
-
 
           <div>
 
@@ -923,7 +675,6 @@ function Transparency() {
 
           </div>
 
-
           <div>
 
             <span>
@@ -952,8 +703,6 @@ function Transparency() {
       <div className="transparency-grid">
 
 
-        {/* PAYMENT MODE */}
-
         <div className="transparency-section">
 
           <div className="transparency-section-header">
@@ -969,7 +718,6 @@ function Transparency() {
               </p>
 
             </div>
-
 
             <IndianRupee
               size={21}
@@ -994,7 +742,6 @@ function Transparency() {
               </div>
 
               <strong>
-                ₹
                 {money(
                   cashCollection
                 )}
@@ -1016,7 +763,6 @@ function Transparency() {
               </div>
 
               <strong>
-                ₹
                 {money(
                   upiCollection
                 )}
@@ -1038,7 +784,6 @@ function Transparency() {
               </div>
 
               <strong>
-                ₹
                 {money(
                   bankCollection
                 )}
@@ -1054,7 +799,6 @@ function Transparency() {
               </span>
 
               <strong>
-                ₹
                 {money(
                   totalCollection
                 )}
@@ -1067,7 +811,9 @@ function Transparency() {
         </div>
 
 
-        {/* FINANCIAL POSITION */}
+        {/* =================================================
+            TRANSPARENCY NOTE
+        ================================================= */}
 
         <div className="transparency-section">
 
@@ -1084,7 +830,6 @@ function Transparency() {
               </p>
 
             </div>
-
 
             <Wallet
               size={21}
@@ -1103,12 +848,9 @@ function Transparency() {
               </span>
 
               <strong className="green-text">
-
-                + ₹
-                {money(
+                + {money(
                   totalCollection
                 )}
-
               </strong>
 
             </div>
@@ -1121,12 +863,9 @@ function Transparency() {
               </span>
 
               <strong className="red-text">
-
-                − ₹
-                {money(
+                − {money(
                   totalExpense
                 )}
-
               </strong>
 
             </div>
@@ -1148,11 +887,7 @@ function Transparency() {
                     : "red-text"
                 }
               >
-
-                {signedMoney(
-                  balance
-                )}
-
+                {money(balance)}
               </strong>
 
             </div>
@@ -1171,9 +906,7 @@ function Transparency() {
       <div className="transparency-transactions">
 
 
-        {/* =================================================
-            COLLECTIONS
-        ================================================= */}
+        {/* COLLECTIONS */}
 
         <div className="transparency-section">
 
@@ -1199,18 +932,13 @@ function Transparency() {
             {recentCollections.length === 0 ? (
 
               <div className="transparency-empty">
-
                 अजून कोणतीही जमा नोंद नाही.
-
               </div>
 
             ) : (
 
               recentCollections.map(
-                (
-                  payment,
-                  index
-                ) => (
+                (payment, index) => (
 
                   <div
                     className="transparency-list-row"
@@ -1234,26 +962,18 @@ function Transparency() {
 
                       </div>
 
-
                       <div>
 
                         <strong>
-
-                          {
-                            payment.memberName ||
+                          {payment.memberName ||
                             payment.name ||
-                            "वर्गणीदार"
-                          }
-
+                            "वर्गणीदार"}
                         </strong>
 
-
                         <span>
-
                           {formatDate(
                             payment.date
                           )}
-
                         </span>
 
                       </div>
@@ -1262,12 +982,9 @@ function Transparency() {
 
 
                     <strong className="green-text">
-
-                      + ₹
-                      {money(
+                      + {money(
                         payment.amount
                       )}
-
                     </strong>
 
                   </div>
@@ -1282,9 +999,7 @@ function Transparency() {
         </div>
 
 
-        {/* =================================================
-            EXPENSES
-        ================================================= */}
+        {/* EXPENSES */}
 
         <div className="transparency-section">
 
@@ -1310,18 +1025,13 @@ function Transparency() {
             {recentExpenses.length === 0 ? (
 
               <div className="transparency-empty">
-
                 अजून कोणताही खर्च नोंदलेला नाही.
-
               </div>
 
             ) : (
 
               recentExpenses.map(
-                (
-                  expense,
-                  index
-                ) => (
+                (expense, index) => (
 
                   <div
                     className="transparency-list-row"
@@ -1341,33 +1051,21 @@ function Transparency() {
 
                       </div>
 
-
                       <div>
 
                         <strong>
-
-                          {
-                            expense.description ||
+                          {expense.description ||
                             expense.category ||
-                            "Expense"
-                          }
-
+                            "Expense"}
                         </strong>
 
-
                         <span>
-
-                          {
-                            expense.category ||
-                            "Other"
-                          }
-
+                          {expense.category ||
+                            "Other"}
                           {" • "}
-
                           {formatDate(
                             expense.date
                           )}
-
                         </span>
 
                       </div>
@@ -1376,12 +1074,9 @@ function Transparency() {
 
 
                     <strong className="red-text">
-
-                      − ₹
-                      {money(
+                      − {money(
                         expense.amount
                       )}
-
                     </strong>
 
                   </div>
@@ -1413,7 +1108,6 @@ function Transparency() {
         </span>
 
       </div>
-
 
     </div>
 

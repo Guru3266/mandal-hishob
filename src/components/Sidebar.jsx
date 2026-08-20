@@ -1,137 +1,214 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Users,
-  Wallet,
-  ReceiptText,
-  Banknote,
-  BookOpen,
-  BarChart3,
-  Globe,
-  Settings,
-  LogOut,
-} from "lucide-react";
+// import { NavLink, useNavigate } from "react-router-dom";
+// import { supabase } from "../lib/supabase";
 
-function Sidebar() {
-  const navigate = useNavigate();
+// import {
+//   LayoutDashboard,
+//   Users,
+//   Wallet,
+//   ReceiptText,
+//   Banknote,
+//   BookOpen,
+//   BarChart3,
+//   Globe,
+//   Settings,
+//   LogOut,
+// } from "lucide-react";
 
-  const handleLogout = () => {
-    localStorage.removeItem("mandalLoggedIn");
-    navigate("/login");
-  };
+// function Sidebar() {
+//   const navigate = useNavigate();
 
-  const menuItems = [
-    {
-      label: "Dashboard",
-      path: "/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      label: "वर्गणीदार",
-      path: "/members",
-      icon: Users,
-    },
-    {
-      label: "जमा रक्कम",
-      path: "/collections",
-      icon: Wallet,
-    },
-    {
-      label: "पावत्या",
-      path: "/receipts",
-      icon: ReceiptText,
-    },
-    {
-      label: "खर्च",
-      path: "/expenses",
-      icon: Banknote,
-    },
-    {
-      label: "Ledger",
-      path: "/ledger",
-      icon: BookOpen,
-    },
-    {
-      label: "Reports",
-      path: "/reports",
-      icon: BarChart3,
-    },
-    {
-      label: "Transparency",
-      path: "/transparency",
-      icon: Globe,
-    },
-  ];
+//   // ============================================================
+//   // LOGOUT
+//   // ============================================================
 
-  return (
-    <aside className="sidebar">
+// const handleLogout = async () => {
+//   try {
+//     console.log("Logout clicked");
 
-      {/* Logo */}
-      <div className="logo">
+//     // Supabase session logout
+//     const { error } = await supabase.auth.signOut({
+//       scope: "global",
+//     });
 
-        <div className="logo-icon">
-          🙏
-        </div>
+//     if (error) {
+//       console.error("Supabase logout error:", error);
+//     }
 
-        <div>
-          <h2>Mandal Hishob</h2>
-          <span>Digital Accounting</span>
-        </div>
+//     // Old temporary login remove
+//     localStorage.removeItem("mandalLoggedIn");
 
-      </div>
+//     // Remove any possible auth-related local data
+//     Object.keys(localStorage).forEach((key) => {
+//       if (
+//         key.startsWith("sb-") ||
+//         key.includes("supabase")
+//       ) {
+//         localStorage.removeItem(key);
+//       }
+//     });
 
-      {/* Navigation */}
-      <nav className="sidebar-nav">
+//     // Hard redirect
+//     window.location.replace("/login");
 
-        {menuItems.map((item) => {
+//   } catch (error) {
+//     console.error(
+//       "Logout failed:",
+//       error
+//     );
 
-          const Icon = item.icon;
+//     // Even if Supabase logout fails,
+//     // don't keep user inside the app
+//     localStorage.removeItem("mandalLoggedIn");
 
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                isActive
-                  ? "sidebar-link active"
-                  : "sidebar-link"
-              }
-            >
-              <Icon size={18} />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
+//     window.location.replace("/login");
+//   }
+// };
 
-      </nav>
+//   // ============================================================
+//   // MENU ITEMS
+//   // ============================================================
 
-      {/* Bottom */}
-      <div className="sidebar-bottom">
+//   const menuItems = [
+//     {
+//       label: "Dashboard",
+//       path: "/dashboard",
+//       icon: LayoutDashboard,
+//     },
+//     {
+//       label: "वर्गणीदार",
+//       path: "/members",
+//       icon: Users,
+//     },
+//     {
+//       label: "जमा रक्कम",
+//       path: "/collections",
+//       icon: Wallet,
+//     },
+//     {
+//       label: "पावत्या",
+//       path: "/receipts",
+//       icon: ReceiptText,
+//     },
+//     {
+//       label: "खर्च",
+//       path: "/expenses",
+//       icon: Banknote,
+//     },
+//     {
+//       label: "Ledger",
+//       path: "/ledger",
+//       icon: BookOpen,
+//     },
+//     {
+//       label: "Reports",
+//       path: "/reports",
+//       icon: BarChart3,
+//     },
+//     {
+//       label: "Transparency",
+//       path: "/transparency",
+//       icon: Globe,
+//     },
+//   ];
 
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            isActive
-              ? "sidebar-link active"
-              : "sidebar-link"
-          }
-        >
-          <Settings size={18} />
-          <span>Settings</span>
-        </NavLink>
+//   // ============================================================
+//   // RENDER
+//   // ============================================================
 
-        <button
-          className="logout-link"
-          onClick={handleLogout}
-        >
-          <LogOut size={18} />
-          <span>Logout</span>
-        </button>
+//   return (
+//     <aside className="sidebar">
 
-      </div>
+//       {/* Logo */}
 
-    </aside>
-  );
-}
+//       <div className="logo">
 
-export default Sidebar;
+//         <div className="logo-icon">
+//           🙏
+//         </div>
+
+//         <div>
+//           <h2>
+//             Mandal Hishob
+//           </h2>
+
+//           <span>
+//             Digital Accounting
+//           </span>
+//         </div>
+
+//       </div>
+
+//       {/* Navigation */}
+
+//       <nav className="sidebar-nav">
+
+//         {menuItems.map((item) => {
+
+//           const Icon = item.icon;
+
+//           return (
+//             <NavLink
+//               key={item.path}
+//               to={item.path}
+//               className={({ isActive }) =>
+//                 isActive
+//                   ? "sidebar-link active"
+//                   : "sidebar-link"
+//               }
+//             >
+//               <Icon size={18} />
+
+//               <span>
+//                 {item.label}
+//               </span>
+
+//             </NavLink>
+//           );
+//         })}
+
+//       </nav>
+
+//       {/* Bottom */}
+
+//       <div className="sidebar-bottom">
+
+//         {/* Settings */}
+
+//         <NavLink
+//           to="/settings"
+//           className={({ isActive }) =>
+//             isActive
+//               ? "sidebar-link active"
+//               : "sidebar-link"
+//           }
+//         >
+//           <Settings size={18} />
+
+//           <span>
+//             Settings
+//           </span>
+
+//         </NavLink>
+
+//         {/* Logout */}
+
+//         <button
+//           type="button"
+//           className="logout-link"
+//           onClick={handleLogout}
+//         >
+//           <LogOut size={18} />
+
+//           <span>
+//             Logout
+//           </span>
+
+//         </button>
+
+//       </div>
+
+//     </aside>
+//   );
+// }
+
+// export default Sidebar;

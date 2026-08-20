@@ -7,7 +7,6 @@ import {
 import {
   BarChart3,
   CalendarDays,
-  Download,
   IndianRupee,
   TrendingDown,
   TrendingUp,
@@ -16,62 +15,35 @@ import {
   X,
   Printer,
   Search,
+  ReceiptText,
 } from "lucide-react";
 
-import {
-  getMembers,
-  getCollections,
-  getExpenses,
-  getTotalCollection,
-  getTotalExpense,
-  getCurrentBalance,
-} from "../data/financialStore";
-
-import {
-  getMandalConfig,
-} from "../utils/mandalConfig";
+import { getReportsData } from "../utils/supabaseReports";
+import useMandalConfig from "../hooks/useMandalConfig";
 
 import "./Reports.css";
 
-
 function Reports() {
+  // ============================================================
+  // DATA
+  // ============================================================
 
-  /* =====================================================
-     DATA
-  ===================================================== */
+  const [members, setMembers] = useState([]);
+  const [collections, setCollections] = useState([]);
+  const [expenses, setExpenses] = useState([]);
 
-  const [members, setMembers] =
-    useState([]);
+  const mandal = useMandalConfig();
 
-  const [collections, setCollections] =
-    useState([]);
+  // ============================================================
+  // FILTERS
+  // ============================================================
 
-  const [expenses, setExpenses] =
-    useState([]);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
-  const [mandal, setMandal] =
-    useState(
-      getMandalConfig()
-    );
-
-
-  /* =====================================================
-     FILTERS
-  ===================================================== */
-
-  const [fromDate, setFromDate] =
-    useState("");
-
-  const [toDate, setToDate] =
-    useState("");
-
-  const [reportType, setReportType] =
-    useState("All");
-
-
-  /* =====================================================
-     SEARCH
-  ===================================================== */
+  // ============================================================
+  // SEARCH
+  // ============================================================
 
   const [memberSearch, setMemberSearch] =
     useState("");
@@ -79,66 +51,46 @@ function Reports() {
   const [expenseSearch, setExpenseSearch] =
     useState("");
 
-
-  /* =====================================================
-     MODAL
-  ===================================================== */
+  // ============================================================
+  // MODAL
+  // ============================================================
 
   const [selectedMember, setSelectedMember] =
     useState(null);
 
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
 
-  /* =====================================================
-     LOAD DATA
-  ===================================================== */
-
-  const loadData = () => {
-
+  const loadData = async () => {
     try {
+      const data = await getReportsData();
 
-      setMembers(
-        getMembers()
-      );
-
-      setCollections(
-        getCollections()
-      );
-
-      setExpenses(
-        getExpenses()
-      );
-
-      setMandal(
-        getMandalConfig()
-      );
-
+      setMembers(data?.members || []);
+      setCollections(data?.collections || []);
+      setExpenses(data?.expenses || []);
     } catch (error) {
-
       console.error(
-        "Reports loading error:",
+        "Reports Supabase loading error:",
         error
       );
 
+      setMembers([]);
+      setCollections([]);
+      setExpenses([]);
     }
-
   };
 
-
-  /* =====================================================
-     INITIAL LOAD
-  ===================================================== */
+  // ============================================================
+  // INITIAL LOAD + EVENTS
+  // ============================================================
 
   useEffect(() => {
-
     loadData();
 
-
     const handleUpdate = () => {
-
       loadData();
-
     };
-
 
     window.addEventListener(
       "mandal-data-updated",
@@ -155,9 +107,7 @@ function Reports() {
       handleUpdate
     );
 
-
     return () => {
-
       window.removeEventListener(
         "mandal-data-updated",
         handleUpdate
@@ -172,201 +122,187 @@ function Reports() {
         "storage",
         handleUpdate
       );
-
     };
-
   }, []);
 
+  // ============================================================
+  // MONEY FORMAT
+  // ============================================================
 
-  /* =====================================================
-     MONEY FORMAT
-  ===================================================== */
+  const money = (value) =>
+    Number(value || 0).toLocaleString("en-IN");
 
-  const money = (
-    value
-  ) => {
+  // ============================================================
+  // DATE FORMAT
+  // ============================================================
 
-    return Number(
-      value || 0
-    ).toLocaleString(
-      "en-IN"
-    );
+  const formatDate = (value) => {
+    if (!value) return "-";
 
-  };
+    const date = new Date(value);
 
-
-  /* =====================================================
-     DATE FILTER FUNCTION
-  ===================================================== */
-
-  const isDateInRange = (
-    date
-  ) => {
-
-    if (!date) {
-      return true;
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
     }
 
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
+  };
+
+  // ============================================================
+  // DATE FILTER
+  // ============================================================
+
+  const isDateInRange = (date) => {
+    if (!date) return true;
+
+    const value = String(date).slice(0, 10);
 
     if (
       fromDate &&
-      date < fromDate
+      value < fromDate
     ) {
-
       return false;
-
     }
-
 
     if (
       toDate &&
-      date > toDate
+      value > toDate
     ) {
-
       return false;
-
     }
 
-
     return true;
-
   };
 
+  // ============================================================
+  // FILTER COLLECTIONS
+  // ============================================================
 
-  /* =====================================================
-     FILTERED COLLECTIONS
-  ===================================================== */
+  const filteredCollections = useMemo(() => {
+    const search =
+      memberSearch
+        .trim()
+        .toLowerCase();
 
-  const filteredCollections =
-    useMemo(() => {
+    return collections.filter(
+      (collection) => {
+        const date =
+          collection.date ||
+          collection.payment_date ||
+          collection.created_at;
 
-      return collections.filter(
-        (collection) => {
+        const dateMatch =
+          isDateInRange(date);
 
-          const dateMatch =
-            isDateInRange(
-              collection.date
-            );
-
-
-          const search =
-            memberSearch
-              .trim()
-              .toLowerCase();
-
-
-          const searchMatch =
-            !search ||
-            String(
-              collection.memberName ||
+        const searchMatch =
+          !search ||
+          String(
+            collection.memberName ||
+              collection.member_name ||
               ""
-            )
-              .toLowerCase()
-              .includes(search) ||
-
-            String(
-              collection.memberId ||
+          )
+            .toLowerCase()
+            .includes(search) ||
+          String(
+            collection.memberId ||
+              collection.member_id ||
               ""
-            )
-              .toLowerCase()
-              .includes(search) ||
-
-            String(
-              collection.id ||
+          )
+            .toLowerCase()
+            .includes(search) ||
+          String(
+            collection.receiptNo ||
+              collection.receipt_no ||
               ""
-            )
-              .toLowerCase()
-              .includes(search);
+          )
+            .toLowerCase()
+            .includes(search);
 
+        return (
+          dateMatch &&
+          searchMatch
+        );
+      }
+    );
+  }, [
+    collections,
+    fromDate,
+    toDate,
+    memberSearch,
+  ]);
 
-          return (
-            dateMatch &&
-            searchMatch
-          );
+  // ============================================================
+  // FILTER EXPENSES
+  // ============================================================
 
-        }
-      );
+  const filteredExpenses = useMemo(() => {
+    const search =
+      expenseSearch
+        .trim()
+        .toLowerCase();
 
-    }, [
-      collections,
-      fromDate,
-      toDate,
-      memberSearch,
-    ]);
+    return expenses.filter(
+      (expense) => {
+        const date =
+          expense.date ||
+          expense.expense_date ||
+          expense.created_at;
 
+        const dateMatch =
+          isDateInRange(date);
 
-  /* =====================================================
-     FILTERED EXPENSES
-  ===================================================== */
-
-  const filteredExpenses =
-    useMemo(() => {
-
-      return expenses.filter(
-        (expense) => {
-
-          const dateMatch =
-            isDateInRange(
-              expense.date
-            );
-
-
-          const search =
-            expenseSearch
-              .trim()
-              .toLowerCase();
-
-
-          const searchMatch =
-            !search ||
-            String(
-              expense.description ||
-              ""
-            )
-              .toLowerCase()
-              .includes(search) ||
-
-            String(
-              expense.category ||
-              ""
-            )
-              .toLowerCase()
-              .includes(search) ||
-
-            String(
+        const searchMatch =
+          !search ||
+          String(
+            expense.description || ""
+          )
+            .toLowerCase()
+            .includes(search) ||
+          String(
+            expense.category || ""
+          )
+            .toLowerCase()
+            .includes(search) ||
+          String(
+            expense.expense_id ||
               expense.id ||
               ""
-            )
-              .toLowerCase()
-              .includes(search);
+          )
+            .toLowerCase()
+            .includes(search) ||
+          String(
+            expense.remark || ""
+          )
+            .toLowerCase()
+            .includes(search);
 
+        return (
+          dateMatch &&
+          searchMatch
+        );
+      }
+    );
+  }, [
+    expenses,
+    fromDate,
+    toDate,
+    expenseSearch,
+  ]);
 
-          return (
-            dateMatch &&
-            searchMatch
-          );
-
-        }
-      );
-
-    }, [
-      expenses,
-      fromDate,
-      toDate,
-      expenseSearch,
-    ]);
-
-
-  /* =====================================================
-     REPORT TOTALS
-  ===================================================== */
+  // ============================================================
+  // REPORT TOTALS
+  // ============================================================
 
   const reportCollection =
     filteredCollections.reduce(
-      (
-        total,
-        collection
-      ) =>
+      (total, collection) =>
         total +
         Number(
           collection.amount || 0
@@ -374,13 +310,9 @@ function Reports() {
       0
     );
 
-
   const reportExpense =
     filteredExpenses.reduce(
-      (
-        total,
-        expense
-      ) =>
+      (total, expense) =>
         total +
         Number(
           expense.amount || 0
@@ -388,327 +320,301 @@ function Reports() {
       0
     );
 
-
   const reportBalance =
     reportCollection -
     reportExpense;
 
+  // ============================================================
+  // EXPECTED COLLECTION
+  // ============================================================
 
-  /* =====================================================
-     PAYMENT MODE REPORT
-  ===================================================== */
+  const reportExpected =
+    members.reduce(
+      (total, member) =>
+        total +
+        Number(
+          member.expected ||
+            member.expected_amount ||
+            0
+        ),
+      0
+    );
+
+  const reportPending =
+    Math.max(
+      reportExpected -
+        reportCollection,
+      0
+    );
+
+  // ============================================================
+  // PAYMENT MODE REPORT
+  // ============================================================
 
   const paymentModeReport =
     useMemo(() => {
-
       const result = {
-
         Cash: 0,
-
         UPI: 0,
-
         Bank: 0,
-
+        Other: 0,
       };
-
 
       filteredCollections.forEach(
         (collection) => {
-
           const mode =
             collection.mode ||
             "Cash";
 
+          const amount =
+            Number(
+              collection.amount || 0
+            );
 
           if (
             result[mode] !==
             undefined
           ) {
-
-            result[mode] +=
-              Number(
-                collection.amount ||
-                0
-              );
-
+            result[mode] += amount;
+          } else {
+            result.Other += amount;
           }
-
         }
       );
 
-
       return result;
+    }, [filteredCollections]);
 
-    }, [
-      filteredCollections,
-    ]);
-
-
-  /* =====================================================
-     EXPENSE CATEGORY REPORT
-  ===================================================== */
+  // ============================================================
+  // EXPENSE CATEGORY REPORT
+  // ============================================================
 
   const categoryReport =
     useMemo(() => {
-
       const result = {};
-
 
       filteredExpenses.forEach(
         (expense) => {
-
           const category =
             expense.category ||
             "Other";
 
-
           if (
             !result[category]
           ) {
-
             result[category] = 0;
-
           }
-
 
           result[category] +=
             Number(
               expense.amount || 0
             );
-
         }
       );
 
-
-      return Object.entries(
-        result
-      )
+      return Object.entries(result)
         .map(
           ([
             category,
             amount,
           ]) => ({
-
             category,
-
             amount,
-
             percentage:
               reportExpense > 0
-                ? (
-                    amount /
-                    reportExpense
-                  ) *
+                ? (amount /
+                    reportExpense) *
                   100
                 : 0,
-
           })
         )
         .sort(
           (a, b) =>
-            b.amount -
-            a.amount
+            b.amount - a.amount
         );
-
     }, [
       filteredExpenses,
       reportExpense,
     ]);
 
-
-  /* =====================================================
-     MEMBER REPORT
-  ===================================================== */
+  // ============================================================
+  // MEMBER REPORT
+  // ============================================================
 
   const memberReport =
     useMemo(() => {
+      const search =
+        memberSearch
+          .trim()
+          .toLowerCase();
 
       return members
-        .map(
-          (member) => {
+        .map((member) => {
+          const memberId =
+            member.id;
 
-            const memberCollections =
-              filteredCollections.filter(
-                (collection) =>
-                  String(
-                    collection.memberId
-                  ) ===
-                  String(
-                    member.id
-                  )
-              );
-
-
-            const collected =
-              memberCollections.reduce(
-                (
-                  total,
-                  collection
-                ) =>
-                  total +
-                  Number(
-                    collection.amount ||
-                    0
-                  ),
-                0
-              );
-
-
-            const expected =
-              Number(
-                member.expected ||
-                0
-              );
-
-
-            const pending =
-              Math.max(
-                expected -
-                  collected,
-                0
-              );
-
-
-            return {
-
-              ...member,
-
-              collected,
-
-              pending,
-
-              status:
-                pending === 0
-                  ? "Paid"
-                  : collected > 0
-                  ? "Partial"
-                  : "Pending",
-
-            };
-
-          }
-        )
-        .filter(
-          (member) => {
-
-            const search =
-              memberSearch
-                .trim()
-                .toLowerCase();
-
-
-            return (
-              !search ||
-              String(
-                member.name ||
-                ""
-              )
-                .toLowerCase()
-                .includes(search) ||
-
-              String(
-                member.id ||
-                ""
-              )
-                .toLowerCase()
-                .includes(search)
-
+          const memberCollections =
+            filteredCollections.filter(
+              (collection) =>
+                String(
+                  collection.memberId ||
+                    collection.member_id
+                ) ===
+                String(memberId)
             );
 
-          }
-        );
+          const collected =
+            memberCollections.reduce(
+              (
+                total,
+                collection
+              ) =>
+                total +
+                Number(
+                  collection.amount ||
+                    0
+                ),
+              0
+            );
 
+          const expected =
+            Number(
+              member.expected ||
+                member.expected_amount ||
+                0
+            );
+
+          const pending =
+            Math.max(
+              expected -
+                collected,
+              0
+            );
+
+          let status = "Pending";
+
+          if (
+            expected > 0 &&
+            collected >= expected
+          ) {
+            status = "Paid";
+          } else if (
+            collected > 0
+          ) {
+            status = "Partial";
+          }
+
+          return {
+            ...member,
+            expected,
+            collected,
+            pending,
+            status,
+          };
+        })
+        .filter((member) => {
+          return (
+            !search ||
+            String(
+              member.name || ""
+            )
+              .toLowerCase()
+              .includes(search) ||
+            String(
+              member.member_code ||
+                member.memberCode ||
+                ""
+            )
+              .toLowerCase()
+              .includes(search) ||
+            String(
+              member.id || ""
+            )
+              .toLowerCase()
+              .includes(search) ||
+            String(
+              member.mobile || ""
+            )
+              .toLowerCase()
+              .includes(search)
+          );
+        });
     }, [
       members,
       filteredCollections,
       memberSearch,
     ]);
 
-
-  /* =====================================================
-     MEMBER SUMMARY
-  ===================================================== */
+  // ============================================================
+  // MEMBER STATUS
+  // ============================================================
 
   const paidMembers =
     memberReport.filter(
       (member) =>
-        member.status ===
-        "Paid"
+        member.status === "Paid"
     ).length;
-
 
   const partialMembers =
     memberReport.filter(
       (member) =>
-        member.status ===
-        "Partial"
+        member.status === "Partial"
     ).length;
-
 
   const pendingMembers =
     memberReport.filter(
       (member) =>
-        member.status ===
-        "Pending"
+        member.status === "Pending"
     ).length;
 
-
-  /* =====================================================
-     CLEAR FILTER
-  ===================================================== */
+  // ============================================================
+  // CLEAR FILTERS
+  // ============================================================
 
   const clearFilters = () => {
-
     setFromDate("");
-
     setToDate("");
-
-    setReportType("All");
-
     setMemberSearch("");
-
     setExpenseSearch("");
-
   };
 
-
-  /* =====================================================
-     PRINT REPORT
-  ===================================================== */
+  // ============================================================
+  // PRINT REPORT
+  // ============================================================
 
   const printReport = () => {
-
     const printWindow =
       window.open(
         "",
         "_blank",
-        "width=1100,height=800"
+        "width=1200,height=900"
       );
 
-
     if (!printWindow) {
-
       alert(
         "Popup blocked आहे. Browser मध्ये popup allow करा."
       );
-
       return;
-
     }
-
 
     const memberRows =
       memberReport
         .map(
           (member) => `
             <tr>
-
               <td>
-                ${member.id}
+                ${
+                  member.member_code ||
+                  member.id
+                }
               </td>
 
               <td>
-                ${member.name}
+                ${member.name || "-"}
+              </td>
+
+              <td>
+                ${member.mobile || "-"}
               </td>
 
               <td>
@@ -732,19 +638,61 @@ function Reports() {
               <td>
                 ${member.status}
               </td>
-
             </tr>
           `
         )
         .join("");
 
+    const expenseRows =
+      filteredExpenses
+        .map(
+          (expense) => `
+            <tr>
+              <td>
+                ${
+                  expense.expense_id ||
+                  expense.id
+                }
+              </td>
+
+              <td>
+                ${expense.category || "Other"}
+              </td>
+
+              <td>
+                ${expense.description || "-"}
+              </td>
+
+              <td class="red">
+                ₹${money(
+                  expense.amount
+                )}
+              </td>
+
+              <td>
+                ${expense.mode || "Cash"}
+              </td>
+
+              <td>
+                ${formatDate(
+                  expense.date ||
+                    expense.expense_date
+                )}
+              </td>
+
+              <td>
+                ${expense.remark || "-"}
+              </td>
+            </tr>
+          `
+        )
+        .join("");
 
     const categoryRows =
       categoryReport
         .map(
           (item) => `
             <tr>
-
               <td>
                 ${item.category}
               </td>
@@ -760,12 +708,10 @@ function Reports() {
                   item.amount
                 )}
               </td>
-
             </tr>
           `
         )
         .join("");
-
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -775,7 +721,10 @@ function Reports() {
       <head>
 
         <title>
-          Financial Report
+          ${
+            mandal?.name ||
+            "Mandal Hishob"
+          } - Financial Report
         </title>
 
         <style>
@@ -786,67 +735,48 @@ function Reports() {
 
           body {
             margin: 0;
-
             padding: 25px;
-
-            font-family:
-              Arial,
-              sans-serif;
-
+            font-family: Arial, sans-serif;
             color: #172033;
           }
 
           .header {
             text-align: center;
-
-            border-bottom:
-              2px solid #f59e0b;
-
+            border-bottom: 2px solid #f59e0b;
             padding-bottom: 15px;
-
             margin-bottom: 20px;
           }
 
           .header h1 {
             margin: 0;
-
             font-size: 25px;
           }
 
           .header p {
             margin: 5px 0;
-
             color: #64748b;
-
             font-size: 12px;
           }
 
           .summary {
             display: grid;
-
             grid-template-columns:
-              repeat(3, 1fr);
-
+              repeat(4, 1fr);
             gap: 10px;
-
             margin-bottom: 25px;
           }
 
           .box {
-            border:
-              1px solid #ddd;
-
+            border: 1px solid #ddd;
             border-radius: 8px;
-
             padding: 12px;
           }
 
           .box span {
             display: block;
-
             color: #64748b;
-
             font-size: 11px;
+            margin-bottom: 5px;
           }
 
           .box strong {
@@ -855,59 +785,56 @@ function Reports() {
 
           h2 {
             margin-top: 25px;
-
             font-size: 17px;
           }
 
           table {
             width: 100%;
-
-            border-collapse:
-              collapse;
-
+            border-collapse: collapse;
             margin-bottom: 20px;
-
             font-size: 10px;
           }
 
           th {
             background: #f8fafc;
-
-            padding: 9px;
-
+            padding: 8px;
             text-align: left;
-
-            border:
-              1px solid #ddd;
+            border: 1px solid #ddd;
           }
 
           td {
-            padding: 8px;
-
-            border:
-              1px solid #e5e7eb;
+            padding: 7px;
+            border: 1px solid #e5e7eb;
           }
 
           .green {
             color: #15803d;
-
             font-weight: bold;
           }
 
           .red {
             color: #dc2626;
-
             font-weight: bold;
           }
 
           .footer {
             margin-top: 25px;
-
             text-align: center;
-
             color: #64748b;
-
             font-size: 10px;
+          }
+
+          .mode-grid {
+            display: grid;
+            grid-template-columns:
+              repeat(4, 1fr);
+            gap: 10px;
+          }
+
+          .mode-box {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 7px;
           }
 
         </style>
@@ -920,19 +847,19 @@ function Reports() {
 
           <h1>
             ${
-              mandal.name ||
+              mandal?.name ||
               "Mandal Hishob"
             }
           </h1>
 
           ${
-            mandal.tagline
+            mandal?.tagline
               ? `<p>${mandal.tagline}</p>`
               : ""
           }
 
           ${
-            mandal.address
+            mandal?.address
               ? `<p>${mandal.address}</p>`
               : ""
           }
@@ -943,11 +870,9 @@ function Reports() {
 
         </div>
 
-
         <div class="summary">
 
           <div class="box">
-
             <span>
               Total Collection
             </span>
@@ -957,12 +882,9 @@ function Reports() {
                 reportCollection
               )}
             </strong>
-
           </div>
 
-
           <div class="box">
-
             <span>
               Total Expense
             </span>
@@ -972,34 +894,85 @@ function Reports() {
                 reportExpense
               )}
             </strong>
-
           </div>
 
-
           <div class="box">
-
             <span>
-              Current Balance
+              Net Balance
             </span>
 
-          <strong
-  class="${
-    reportBalance >= 0
-      ? "green"
-      : "red"
-  }"
->
-  ${
-    reportBalance < 0
-      ? "-₹"
-      : "₹"
-  }${money(Math.abs(reportBalance))}
-</strong>
+            <strong
+              class="${
+                reportBalance >= 0
+                  ? "green"
+                  : "red"
+              }"
+            >
+              ${
+                reportBalance < 0
+                  ? "-₹"
+                  : "₹"
+              }${money(
+                Math.abs(
+                  reportBalance
+                )
+              )}
+            </strong>
+          </div>
 
+          <div class="box">
+            <span>
+              Pending Collection
+            </span>
+
+            <strong class="red">
+              ₹${money(
+                reportPending
+              )}
+            </strong>
           </div>
 
         </div>
 
+        <h2>
+          Collection by Payment Mode
+        </h2>
+
+        <div class="mode-grid">
+
+          <div class="mode-box">
+            <strong>Cash</strong>
+            <br />
+            ₹${money(
+              paymentModeReport.Cash
+            )}
+          </div>
+
+          <div class="mode-box">
+            <strong>UPI</strong>
+            <br />
+            ₹${money(
+              paymentModeReport.UPI
+            )}
+          </div>
+
+          <div class="mode-box">
+            <strong>Bank</strong>
+            <br />
+            ₹${money(
+              paymentModeReport.Bank
+            )}
+          </div>
+
+          <div class="mode-box">
+            <strong>Other</strong>
+            <br />
+            ₹${money(
+              paymentModeReport.Other
+            )}
+          </div>
+
+        </div>
 
         <h2>
           Member Collection Report
@@ -1010,43 +983,22 @@ function Reports() {
           <thead>
 
             <tr>
-
-              <th>
-                Member ID
-              </th>
-
-              <th>
-                Member
-              </th>
-
-              <th>
-                Expected
-              </th>
-
-              <th>
-                Collected
-              </th>
-
-              <th>
-                Pending
-              </th>
-
-              <th>
-                Status
-              </th>
-
+              <th>Member ID</th>
+              <th>Member</th>
+              <th>Mobile</th>
+              <th>Expected</th>
+              <th>Collected</th>
+              <th>Pending</th>
+              <th>Status</th>
             </tr>
 
           </thead>
 
           <tbody>
-
             ${memberRows}
-
           </tbody>
 
         </table>
-
 
         <h2>
           Expense Category Report
@@ -1057,48 +1009,58 @@ function Reports() {
           <thead>
 
             <tr>
-
-              <th>
-                Category
-              </th>
-
-              <th>
-                Percentage
-              </th>
-
-              <th>
-                Amount
-              </th>
-
+              <th>Category</th>
+              <th>Percentage</th>
+              <th>Amount</th>
             </tr>
 
           </thead>
 
           <tbody>
-
             ${categoryRows}
-
           </tbody>
 
         </table>
 
+        <h2>
+          Expense Transactions
+        </h2>
+
+        <table>
+
+          <thead>
+
+            <tr>
+              <th>Expense ID</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Mode</th>
+              <th>Date</th>
+              <th>Remark</th>
+            </tr>
+
+          </thead>
+
+          <tbody>
+            ${expenseRows}
+          </tbody>
+
+        </table>
 
         <div class="footer">
-
           Generated from Mandal Hishob
-
+          <br />
+          Generated on:
+          ${formatDate(
+            new Date()
+          )}
         </div>
 
-
         <script>
-
-          window.onload =
-            function() {
-
-              window.print();
-
-            };
-
+          window.onload = function () {
+            window.print();
+          };
         </script>
 
       </body>
@@ -1106,24 +1068,17 @@ function Reports() {
       </html>
     `);
 
-
     printWindow.document.close();
-
   };
 
-
-  /* =====================================================
-     RENDER
-  ===================================================== */
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
-
     <div className="reports-page">
 
-
-      {/* =================================================
-          HEADER
-      ================================================= */}
+      {/* HEADER */}
 
       <div className="reports-header">
 
@@ -1139,37 +1094,24 @@ function Reports() {
 
         </div>
 
-
         <button
           type="button"
           className="report-print-btn"
-          onClick={
-            printReport
-          }
+          onClick={printReport}
         >
-
-          <Printer
-            size={17}
-          />
-
+          <Printer size={17} />
           Print Report
-
         </button>
 
       </div>
 
-
-      {/* =================================================
-          FILTER BAR
-      ================================================= */}
+      {/* FILTER */}
 
       <section className="report-filter-card">
 
         <div className="report-filter-title">
 
-          <BarChart3
-            size={18}
-          />
+          <BarChart3 size={18} />
 
           <div>
 
@@ -1185,23 +1127,15 @@ function Reports() {
 
         </div>
 
-
         <div className="report-filter-controls">
-
-
-          {/* FROM */}
 
           <div className="report-date-input">
 
-            <CalendarDays
-              size={15}
-            />
+            <CalendarDays size={15} />
 
             <input
               type="date"
-              value={
-                fromDate
-              }
+              value={fromDate}
               onChange={(e) =>
                 setFromDate(
                   e.target.value
@@ -1211,25 +1145,17 @@ function Reports() {
 
           </div>
 
-
           <span className="date-separator">
             to
           </span>
 
-
-          {/* TO */}
-
           <div className="report-date-input">
 
-            <CalendarDays
-              size={15}
-            />
+            <CalendarDays size={15} />
 
             <input
               type="date"
-              value={
-                toDate
-              }
+              value={toDate}
               onChange={(e) =>
                 setToDate(
                   e.target.value
@@ -1239,9 +1165,6 @@ function Reports() {
 
           </div>
 
-
-          {/* CLEAR */}
-
           {(fromDate ||
             toDate ||
             memberSearch ||
@@ -1250,17 +1173,10 @@ function Reports() {
             <button
               type="button"
               className="report-clear-btn"
-              onClick={
-                clearFilters
-              }
+              onClick={clearFilters}
             >
-
-              <X
-                size={14}
-              />
-
+              <X size={14} />
               Clear
-
             </button>
 
           )}
@@ -1269,24 +1185,14 @@ function Reports() {
 
       </section>
 
-
-      {/* =================================================
-          SUMMARY CARDS
-      ================================================= */}
+      {/* SUMMARY */}
 
       <div className="reports-summary">
-
-
-        {/* COLLECTION */}
 
         <div className="report-summary-card">
 
           <div className="report-summary-icon collection">
-
-            <TrendingUp
-              size={20}
-            />
-
+            <TrendingUp size={20} />
           </div>
 
           <div>
@@ -1296,8 +1202,7 @@ function Reports() {
             </span>
 
             <strong>
-              ₹
-              {money(
+              ₹{money(
                 reportCollection
               )}
             </strong>
@@ -1312,17 +1217,10 @@ function Reports() {
 
         </div>
 
-
-        {/* EXPENSE */}
-
         <div className="report-summary-card">
 
           <div className="report-summary-icon expense">
-
-            <TrendingDown
-              size={20}
-            />
-
+            <TrendingDown size={20} />
           </div>
 
           <div>
@@ -1332,8 +1230,7 @@ function Reports() {
             </span>
 
             <strong>
-              ₹
-              {money(
+              ₹{money(
                 reportExpense
               )}
             </strong>
@@ -1348,75 +1245,67 @@ function Reports() {
 
         </div>
 
-
-       {/* BALANCE */}
-
-<div className="report-summary-card">
-
-  <div className="report-summary-icon balance">
-    <WalletCards size={20} />
-  </div>
-
-  <div>
-
-    <span>
-      Net Balance
-    </span>
-
-    <strong
-      className={
-        reportBalance >= 0
-          ? "positive-text"
-          : "negative-text"
-      }
-    >
-      {reportBalance < 0 ? "-₹" : "₹"}
-      {money(Math.abs(reportBalance))}
-    </strong>
-
-    <small
-      className={
-        reportBalance >= 0
-          ? "positive-text"
-          : "negative-text"
-      }
-    >
-      {reportBalance >= 0
-        ? "Available Balance"
-        : "Expense exceeds collection"}
-    </small>
-
-  </div>
-
-</div>
-
-
-        {/* MEMBERS */}
-
         <div className="report-summary-card">
 
-          <div className="report-summary-icon members">
-
-            <Users
-              size={20}
-            />
-
+          <div className="report-summary-icon balance">
+            <WalletCards size={20} />
           </div>
 
           <div>
 
             <span>
-              Member Status
+              Net Balance
             </span>
 
-            <strong>
-              {paidMembers}
-              /
-              {memberReport.length}
+            <strong
+              className={
+                reportBalance >= 0
+                  ? "positive-text"
+                  : "negative-text"
+              }
+            >
+              {reportBalance < 0
+                ? "-₹"
+                : "₹"}
+              {money(
+                Math.abs(
+                  reportBalance
+                )
+              )}
             </strong>
 
             <small>
-              Paid members
+              {reportBalance >= 0
+                ? "Available Balance"
+                : "Expense exceeds collection"}
+            </small>
+
+          </div>
+
+        </div>
+
+        <div className="report-summary-card">
+
+          <div className="report-summary-icon members">
+            <Users size={20} />
+          </div>
+
+          <div>
+
+            <span>
+              Pending Collection
+            </span>
+
+            <strong className="negative-text">
+              ₹{money(
+                reportPending
+              )}
+            </strong>
+
+            <small>
+              {pendingMembers}
+              {" "}
+              members pending
             </small>
 
           </div>
@@ -1425,17 +1314,11 @@ function Reports() {
 
       </div>
 
-
-      {/* =================================================
-          TWO COLUMN REPORT
-      ================================================= */}
+      {/* TWO COLUMN */}
 
       <div className="reports-grid">
 
-
-        {/* =================================================
-            PAYMENT MODE
-        ================================================= */}
+        {/* PAYMENT MODE */}
 
         <section className="report-card">
 
@@ -1455,134 +1338,71 @@ function Reports() {
 
           </div>
 
-
           <div className="payment-mode-list">
 
+            {[
+              [
+                "Cash",
+                paymentModeReport.Cash,
+              ],
+              [
+                "UPI",
+                paymentModeReport.UPI,
+              ],
+              [
+                "Bank",
+                paymentModeReport.Bank,
+              ],
+              [
+                "Other",
+                paymentModeReport.Other,
+              ],
+            ].map(
+              ([mode, amount]) => (
 
-            {/* CASH */}
+                <div
+                  className="payment-mode-row"
+                  key={mode}
+                >
 
-            <div className="payment-mode-row">
+                  <div className="payment-mode-left">
 
-              <div className="payment-mode-left">
+                    <div
+                      className={`payment-mode-icon ${mode.toLowerCase()}`}
+                    >
+                      <IndianRupee
+                        size={16}
+                      />
+                    </div>
 
-                <div className="payment-mode-icon cash">
+                    <div>
 
-                  <IndianRupee
-                    size={16}
-                  />
+                      <strong>
+                        {mode}
+                      </strong>
 
-                </div>
+                      <span>
+                        {mode} Collection
+                      </span>
 
-                <div>
+                    </div>
 
-                  <strong>
-                    Cash
-                  </strong>
-
-                  <span>
-                    Cash Collection
-                  </span>
-
-                </div>
-
-              </div>
-
-
-              <strong>
-                ₹
-                {money(
-                  paymentModeReport.Cash
-                )}
-              </strong>
-
-            </div>
-
-
-            {/* UPI */}
-
-            <div className="payment-mode-row">
-
-              <div className="payment-mode-left">
-
-                <div className="payment-mode-icon upi">
-
-                  <WalletCards
-                    size={16}
-                  />
-
-                </div>
-
-                <div>
+                  </div>
 
                   <strong>
-                    UPI
+                    ₹{money(amount)}
                   </strong>
 
-                  <span>
-                    UPI Collection
-                  </span>
-
                 </div>
 
-              </div>
-
-
-              <strong>
-                ₹
-                {money(
-                  paymentModeReport.UPI
-                )}
-              </strong>
-
-            </div>
-
-
-            {/* BANK */}
-
-            <div className="payment-mode-row">
-
-              <div className="payment-mode-left">
-
-                <div className="payment-mode-icon bank">
-
-                  <WalletCards
-                    size={16}
-                  />
-
-                </div>
-
-                <div>
-
-                  <strong>
-                    Bank
-                  </strong>
-
-                  <span>
-                    Bank Collection
-                  </span>
-
-                </div>
-
-              </div>
-
-
-              <strong>
-                ₹
-                {money(
-                  paymentModeReport.Bank
-                )}
-              </strong>
-
-            </div>
+              )
+            )}
 
           </div>
 
         </section>
 
-
-        {/* =================================================
-            EXPENSE CATEGORY
-        ================================================= */}
+        {/* EXPENSE CATEGORY */}
 
         <section className="report-card">
 
@@ -1601,7 +1421,6 @@ function Reports() {
             </div>
 
           </div>
-
 
           <div className="category-report-list">
 
@@ -1637,15 +1456,15 @@ function Reports() {
 
                       </div>
 
-
                       <div className="category-progress">
 
                         <div
                           style={{
-                            width: `${Math.min(
-                              item.percentage,
-                              100
-                            )}%`,
+                            width:
+                              `${Math.min(
+                                item.percentage,
+                                100
+                              )}%`,
                           }}
                         />
 
@@ -1653,10 +1472,8 @@ function Reports() {
 
                     </div>
 
-
                     <strong>
-                      ₹
-                      {money(
+                      ₹{money(
                         item.amount
                       )}
                     </strong>
@@ -1669,9 +1486,7 @@ function Reports() {
             ) : (
 
               <div className="report-empty-small">
-
                 No expense data
-
               </div>
 
             )}
@@ -1682,13 +1497,9 @@ function Reports() {
 
       </div>
 
-
-      {/* =================================================
-          MEMBER REPORT
-      ================================================= */}
+      {/* MEMBER REPORT */}
 
       <section className="report-card member-report-card">
-
 
         <div className="report-card-header">
 
@@ -1703,7 +1514,6 @@ function Reports() {
             </p>
 
           </div>
-
 
           <div className="member-status-summary">
 
@@ -1723,21 +1533,14 @@ function Reports() {
 
         </div>
 
-
-        {/* SEARCH */}
-
         <div className="member-report-search">
 
-          <Search
-            size={15}
-          />
+          <Search size={15} />
 
           <input
             type="text"
             placeholder="Search member..."
-            value={
-              memberSearch
-            }
+            value={memberSearch}
             onChange={(e) =>
               setMemberSearch(
                 e.target.value
@@ -1746,9 +1549,6 @@ function Reports() {
           />
 
         </div>
-
-
-        {/* TABLE */}
 
         <div className="report-table-wrapper">
 
@@ -1790,28 +1590,25 @@ function Reports() {
 
             </thead>
 
-
             <tbody>
 
               {memberReport.map(
                 (member) => (
 
                   <tr
-                    key={
-                      member.id
-                    }
+                    key={member.id}
                   >
 
                     <td>
 
                       <strong>
                         {
+                          member.member_code ||
                           member.id
                         }
                       </strong>
 
                     </td>
-
 
                     <td>
 
@@ -1834,30 +1631,21 @@ function Reports() {
 
                     </td>
 
-
                     <td>
-
-                      ₹
-                      {money(
+                      ₹{money(
                         member.expected
                       )}
-
                     </td>
-
 
                     <td>
 
                       <strong className="green-text">
-
-                        ₹
-                        {money(
+                        ₹{money(
                           member.collected
                         )}
-
                       </strong>
 
                     </td>
-
 
                     <td>
 
@@ -1869,16 +1657,12 @@ function Reports() {
                             : "green-text"
                         }
                       >
-
-                        ₹
-                        {money(
+                        ₹{money(
                           member.pending
                         )}
-
                       </strong>
 
                     </td>
-
 
                     <td>
 
@@ -1893,15 +1677,12 @@ function Reports() {
                             : "member-status pending"
                         }
                       >
-
                         {
                           member.status
                         }
-
                       </span>
 
                     </td>
-
 
                     <td>
 
@@ -1914,9 +1695,7 @@ function Reports() {
                           )
                         }
                       >
-
                         View
-
                       </button>
 
                     </td>
@@ -1930,15 +1709,12 @@ function Reports() {
 
           </table>
 
-
           {memberReport.length ===
             0 && (
 
             <div className="report-empty">
 
-              <Users
-                size={35}
-              />
+              <Users size={35} />
 
               <strong>
                 Member data सापडला नाही
@@ -1952,13 +1728,9 @@ function Reports() {
 
       </section>
 
-
-      {/* =================================================
-          EXPENSE TRANSACTIONS
-      ================================================= */}
+      {/* EXPENSE TRANSACTIONS */}
 
       <section className="report-card expense-report-card">
-
 
         <div className="report-card-header">
 
@@ -1974,13 +1746,12 @@ function Reports() {
 
           </div>
 
-
           <div className="expense-report-total">
 
             Total:
+
             <strong>
-              ₹
-              {money(
+              ₹{money(
                 reportExpense
               )}
             </strong>
@@ -1989,21 +1760,14 @@ function Reports() {
 
         </div>
 
-
-        {/* SEARCH */}
-
         <div className="member-report-search">
 
-          <Search
-            size={15}
-          />
+          <Search size={15} />
 
           <input
             type="text"
             placeholder="Search expense..."
-            value={
-              expenseSearch
-            }
+            value={expenseSearch}
             onChange={(e) =>
               setExpenseSearch(
                 e.target.value
@@ -2012,7 +1776,6 @@ function Reports() {
           />
 
         </div>
-
 
         <div className="report-table-wrapper">
 
@@ -2046,10 +1809,13 @@ function Reports() {
                   Date
                 </th>
 
+                <th>
+                  Remark
+                </th>
+
               </tr>
 
             </thead>
-
 
             <tbody>
 
@@ -2066,6 +1832,7 @@ function Reports() {
 
                       <strong>
                         {
+                          expense.expense_id ||
                           expense.id
                         }
                       </strong>
@@ -2075,45 +1842,49 @@ function Reports() {
                     <td>
 
                       <span className="expense-category">
-
                         {
-                          expense.category
+                          expense.category ||
+                          "Other"
                         }
-
                       </span>
 
                     </td>
 
                     <td>
-
                       {
-                        expense.description
+                        expense.description ||
+                        "-"
                       }
-
                     </td>
 
                     <td>
 
                       <strong className="red-text">
-
-                        ₹
-                        {money(
+                        ₹{money(
                           expense.amount
                         )}
-
                       </strong>
 
                     </td>
 
                     <td>
                       {
-                        expense.mode
+                        expense.mode ||
+                        "Cash"
                       }
                     </td>
 
                     <td>
+                      {formatDate(
+                        expense.date ||
+                          expense.expense_date
+                      )}
+                    </td>
+
+                    <td>
                       {
-                        expense.date
+                        expense.remark ||
+                        "-"
                       }
                     </td>
 
@@ -2125,7 +1896,6 @@ function Reports() {
             </tbody>
 
           </table>
-
 
           {filteredExpenses.length ===
             0 && (
@@ -2148,19 +1918,14 @@ function Reports() {
 
       </section>
 
-
-      {/* =================================================
-          MEMBER DETAIL MODAL
-      ================================================= */}
+      {/* MEMBER DETAIL MODAL */}
 
       {selectedMember && (
 
         <div
           className="report-modal-overlay"
           onClick={() =>
-            setSelectedMember(
-              null
-            )
+            setSelectedMember(null)
           }
         >
 
@@ -2170,7 +1935,6 @@ function Reports() {
               e.stopPropagation()
             }
           >
-
 
             <div className="report-modal-header">
 
@@ -2182,12 +1946,12 @@ function Reports() {
 
                 <p>
                   {
+                    selectedMember.member_code ||
                     selectedMember.id
                   }
                 </p>
 
               </div>
-
 
               <button
                 type="button"
@@ -2198,21 +1962,14 @@ function Reports() {
                   )
                 }
               >
-
-                <X
-                  size={19}
-                />
-
+                <X size={19} />
               </button>
 
             </div>
 
-
             <div className="member-detail-box">
 
-
               <div className="member-detail-row">
-
                 <span>
                   Member Name
                 </span>
@@ -2222,27 +1979,22 @@ function Reports() {
                     selectedMember.name
                   }
                 </strong>
-
               </div>
 
-
               <div className="member-detail-row">
-
                 <span>
                   Member ID
                 </span>
 
                 <strong>
                   {
+                    selectedMember.member_code ||
                     selectedMember.id
                   }
                 </strong>
-
               </div>
 
-
               <div className="member-detail-row">
-
                 <span>
                   Mobile
                 </span>
@@ -2253,12 +2005,9 @@ function Reports() {
                     "-"
                   }
                 </strong>
-
               </div>
 
-
               <div className="member-detail-row">
-
                 <span>
                   Address
                 </span>
@@ -2269,60 +2018,52 @@ function Reports() {
                     "-"
                   }
                 </strong>
-
               </div>
 
-
               <div className="member-detail-row">
-
                 <span>
                   Expected
                 </span>
 
                 <strong>
-                  ₹
-                  {money(
+                  ₹{money(
                     selectedMember.expected
                   )}
                 </strong>
-
               </div>
 
-
               <div className="member-detail-row">
-
                 <span>
                   Collected
                 </span>
 
                 <strong className="green-text">
-                  ₹
-                  {money(
+                  ₹{money(
                     selectedMember.collected
                   )}
                 </strong>
-
               </div>
 
-
               <div className="member-detail-row">
-
                 <span>
                   Pending
                 </span>
 
-                <strong className="red-text">
-                  ₹
-                  {money(
+                <strong
+                  className={
+                    selectedMember.pending >
+                    0
+                      ? "red-text"
+                      : "green-text"
+                  }
+                >
+                  ₹{money(
                     selectedMember.pending
                   )}
                 </strong>
-
               </div>
 
-
               <div className="member-detail-total">
-
                 <span>
                   Status
                 </span>
@@ -2332,11 +2073,9 @@ function Reports() {
                     selectedMember.status
                   }
                 </strong>
-
               </div>
 
             </div>
-
 
             <div className="report-modal-actions">
 
@@ -2349,9 +2088,7 @@ function Reports() {
                   )
                 }
               >
-
                 Close
-
               </button>
 
             </div>
@@ -2363,10 +2100,7 @@ function Reports() {
       )}
 
     </div>
-
   );
-
 }
-
 
 export default Reports;

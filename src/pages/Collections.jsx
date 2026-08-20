@@ -17,8 +17,7 @@ import {
   getCollections,
   addCollection,
   deleteCollection,
-  getMemberSummary,
-} from "../data/financialStore";
+} from "../utils/supabaseCollections";
 
 import ReceiptModal from "./ReceiptModal";
 
@@ -68,25 +67,36 @@ function Collections() {
      LOAD DATA
   ===================================================== */
 
-  const loadData = () => {
-
+ const loadData = async () => {
+  try {
     setLoading(true);
 
-    setMembers(
-      getMembers()
-    );
+    const [membersData, collectionsData] =
+      await Promise.all([
+        getMembers(),
+        getCollections(),
+      ]);
+
+    setMembers(membersData);
 
     setCollections(
-      [...getCollections()].sort(
+      [...collectionsData].sort(
         (a, b) =>
           new Date(b.date || 0) -
           new Date(a.date || 0)
       )
     );
+  } catch (error) {
+    console.error("Collections load error:", error);
 
+    alert(
+      error.message ||
+        "Data load करताना error आला."
+    );
+  } finally {
     setLoading(false);
-
-  };
+  }
+};
 
 
   useEffect(() => {
@@ -121,11 +131,39 @@ function Collections() {
      MEMBER SUMMARY
   ===================================================== */
 
-  const memberSummary =
-    useMemo(
-      () => getMemberSummary(),
-      [members, collections]
-    );
+ const memberSummary = useMemo(() => {
+  return members.map((member) => {
+    const collected = collections
+      .filter(
+        (collection) =>
+          String(collection.member_id) ===
+          String(member.id)
+      )
+      .reduce(
+        (total, collection) =>
+          total + Number(collection.amount || 0),
+        0
+      );
+
+    const expected =
+      Number(member.expected_amount || 0);
+
+    return {
+      ...member,
+      id: member.id,
+      memberCode: member.member_code,
+      name: member.name,
+      mobile: member.mobile || "",
+      address: member.address || "",
+      expected,
+      collected,
+      pending: Math.max(
+        expected - collected,
+        0
+      ),
+    };
+  });
+}, [members, collections]);
 
 
   /* =====================================================
@@ -319,9 +357,7 @@ function Collections() {
      SAVE COLLECTION
   ===================================================== */
 
-  const handleSubmit = (
-    event
-  ) => {
+  const handleSubmit = async (event) => {
 
     event.preventDefault();
 
@@ -390,24 +426,13 @@ function Collections() {
 
     try {
 
-      const payment =
-        addCollection({
-
-          memberId:
-            formData.memberId,
-
-          amount,
-
-          mode:
-            formData.mode,
-
-          date:
-            formData.date,
-
-          remark:
-            formData.remark,
-
-        });
+     const payment = await addCollection({
+  memberId: formData.memberId,
+  amount,
+  mode: formData.mode,
+  date: formData.date,
+  remark: formData.remark,
+});
 
 
       closeModal();
@@ -446,42 +471,28 @@ function Collections() {
      DELETE
   ===================================================== */
 
-  const handleDelete = (
-    collection
-  ) => {
+  const handleDelete = async (collection) => {
+  const confirmed = window.confirm(
+    `Receipt ${collection.receiptNo} delete करायची आहे का?`
+  );
 
-    const confirmed =
-      window.confirm(
-        `Receipt ${collection.receiptNo} delete करायची आहे का?`
-      );
+  if (!confirmed) {
+    return;
+  }
 
+  try {
+    await deleteCollection(collection.id);
 
-    if (!confirmed) {
-      return;
-    }
+    await loadData();
+  } catch (error) {
+    console.error(error);
 
-
-    try {
-
-      deleteCollection(
-        collection.id
-      );
-
-      loadData();
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-      alert(
+    alert(
+      error.message ||
         "Receipt delete करताना error आला."
-      );
-
-    }
-
-  };
+    );
+  }
+};
 
 
   /* =====================================================
@@ -728,6 +739,10 @@ function Collections() {
           <option value="Bank">
             Bank
           </option>
+
+          <option value="Other">
+  Other
+</option>
 
         </select>
 
@@ -1296,6 +1311,9 @@ function Collections() {
                   <option value="Bank">
                     Bank
                   </option>
+                  <option value="Other">
+  Other
+</option>
 
                 </select>
 

@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { testSupabaseConnection } from "./lib/testSupabase";
 import {
   BrowserRouter,
   Routes,
@@ -22,6 +24,9 @@ import "./App.css";
 
 
 function App() {
+  useEffect(() => {
+    testSupabaseConnection();
+  }, []);
 
   return (
 
