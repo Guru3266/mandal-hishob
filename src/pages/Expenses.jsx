@@ -24,9 +24,13 @@ import {
 } from "../utils/supabaseExpenses";
 
 import useMandalConfig from "../hooks/useMandalConfig";
+import { isAdmin } from "../utils/permissions";
+
 import "./Expenses.css";
 
 function Expenses() {
+
+  const admin = isAdmin();
   // =====================================================
   // STATES
   // =====================================================
@@ -210,23 +214,31 @@ function Expenses() {
   // =====================================================
 
   const openAddModal = () => {
-    setEditingExpense(null);
 
-    setFormData({
-      ...emptyForm,
-      date: new Date()
-        .toISOString()
-        .split("T")[0],
-    });
+  if (!isAdmin()) {
+    return;
+  }
 
-    setShowModal(true);
-  };
+  setEditingExpense(null);
+
+  setFormData({
+    ...emptyForm,
+    date: new Date()
+      .toISOString()
+      .split("T")[0],
+  });
+
+  setShowModal(true);
+};
 
   // =====================================================
   // OPEN EDIT MODAL
   // =====================================================
 
   const openEditModal = (expense) => {
+     if (!isAdmin()) {
+    return;
+  }
     setEditingExpense(expense);
 
     setFormData({
@@ -294,10 +306,16 @@ function Expenses() {
   // SAVE EXPENSE
   // =====================================================
 
-  const handleSubmit = async (
-    event
-  ) => {
-    event.preventDefault();
+const handleSubmit = async (event) => {
+
+  if (!isAdmin()) {
+    alert(
+      "तुम्हाला Expense बदलण्याची permission नाही."
+    );
+    return;
+  }
+
+  event.preventDefault();
 
     if (
       !formData.category.trim()
@@ -353,41 +371,51 @@ function Expenses() {
   // DELETE
   // =====================================================
 
-  const handleDelete = async (
-    expense
-  ) => {
-    const confirmed =
-      window.confirm(
-        `तुम्हाला "${expense.category}" चा ₹${Number(
-          expense.amount
-        ).toLocaleString(
-          "en-IN"
-        )} expense delete करायचा आहे का?`
-      );
+// =====================================================
+// DELETE
+// =====================================================
 
-    if (!confirmed) {
-      return;
-    }
+const handleDelete = async (expense) => {
 
-    try {
-      await deleteExpense(
-        expense.id
-      );
+  // Viewer cannot delete
+  if (!isAdmin()) {
+    alert(
+      "तुम्हाला Expense delete करण्याची permission नाही."
+    );
+    return;
+  }
 
-      await loadExpenses();
+  const confirmed = window.confirm(
+    `तुम्हाला "${expense.category}" चा ₹${Number(
+      expense.amount
+    ).toLocaleString("en-IN")} expense delete करायचा आहे का?`
+  );
 
-    } catch (error) {
-      console.error(
-        "Expense delete error:",
-        error
-      );
+  if (!confirmed) {
+    return;
+  }
 
-      alert(
-        error.message ||
-          "Expense delete करताना error आला."
-      );
-    }
-  };
+  try {
+    await deleteExpense(expense.id);
+
+    await loadExpenses();
+
+  } catch (error) {
+    console.error(
+      "Expense delete error:",
+      error
+    );
+
+    alert(
+      error.message ||
+        "Expense delete करताना error आला."
+    );
+  }
+};
+
+// =====================================================
+// TOTAL
+// =====================================================
 
   // =====================================================
   // TOTAL
@@ -933,17 +961,15 @@ ${
           </p>
 
         </div>
-
-        <button
-          className="add-expense-btn"
-          onClick={openAddModal}
-        >
-
-          <Plus size={17} />
-
-          खर्च नोंदवा
-
-        </button>
+{admin && (
+  <button
+    className="add-expense-btn"
+    onClick={openAddModal}
+  >
+    <Plus size={17} />
+    खर्च नोंदवा
+  </button>
+)}
 
       </div>
 
@@ -1309,60 +1335,52 @@ ${
 
                       <td>
 
-                        <div className="expense-actions">
+                        <td>
 
-                          {/* VIEW */}
+  <div className="expense-actions">
 
-                          <button
-                            type="button"
-                            className="expense-view-btn"
-                            onClick={() =>
-                              openViewExpense(
-                                expense
-                              )
-                            }
-                            title="View"
-                          >
+    {/* VIEW */}
 
-                            <Eye size={15} />
+    <button
+      type="button"
+      className="expense-view-btn"
+      onClick={() =>
+        openViewExpense(expense)
+      }
+      title="View"
+    >
+      <Eye size={15} />
+    </button>
 
-                          </button>
+    {/* EDIT */}
 
-                          {/* EDIT */}
+    <button
+      type="button"
+      className="expense-edit-btn"
+      onClick={() =>
+        openEditModal(expense)
+      }
+      title="Edit"
+    >
+      <Pencil size={15} />
+    </button>
 
-                          <button
-                            type="button"
-                            className="expense-edit-btn"
-                            onClick={() =>
-                              openEditModal(
-                                expense
-                              )
-                            }
-                            title="Edit"
-                          >
+    {/* DELETE */}
 
-                            <Pencil size={15} />
+    <button
+      type="button"
+      className="expense-delete-btn"
+      onClick={() =>
+        handleDelete(expense)
+      }
+      title="Delete"
+    >
+      <Trash2 size={15} />
+    </button>
 
-                          </button>
+  </div>
 
-                          {/* DELETE */}
-
-                          <button
-                            type="button"
-                            className="expense-delete-btn"
-                            onClick={() =>
-                              handleDelete(
-                                expense
-                              )
-                            }
-                            title="Delete"
-                          >
-
-                            <Trash2 size={15} />
-
-                          </button>
-
-                        </div>
+</td>
 
                       </td>
 
@@ -1934,21 +1952,20 @@ ${
                 Close
               </button>
 
-              <button
-                type="button"
-                className="expense-view-whatsapp"
-                onClick={() =>
-                  sendExpenseWhatsApp(
-                    viewingExpense
-                  )
-                }
-              >
-
-                <MessageCircle size={16} />
-
-                WhatsApp
-
-              </button>
+             {admin && (
+  <button
+    type="button"
+    className="expense-view-whatsapp"
+    onClick={() =>
+      sendExpenseWhatsApp(
+        viewingExpense
+      )
+    }
+  >
+    <MessageCircle size={16} />
+    WhatsApp
+  </button>
+)}
 
               <button
                 type="button"

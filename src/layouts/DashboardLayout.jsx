@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "../lib/supabase";
+import { isAdmin } from "../utils/permissions";
 
 import useMandalConfig
   from "../hooks/useMandalConfig";
@@ -34,6 +35,8 @@ import "../App.css";
 
 function DashboardLayout() {
   const navigate = useNavigate();
+
+  const admin = isAdmin();
 
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false);
@@ -436,14 +439,16 @@ function DashboardLayout() {
 
         <div className="sidebar-bottom">
 
-          <NavLink
-            to="/settings"
-            className={getNavClass}
-            onClick={closeMobileMenu}
-          >
-            <Settings size={18} />
-            <span>Settings</span>
-          </NavLink>
+         {admin && (
+  <NavLink
+    to="/settings"
+    className={getNavClass}
+    onClick={closeMobileMenu}
+  >
+    <Settings size={18} />
+    <span>Settings</span>
+  </NavLink>
+)}
 
           {/* LOGOUT */}
 

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import useMandalConfig from "../hooks/useMandalConfig";
-
+import { isAdmin } from "../utils/permissions";
 
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -24,7 +24,7 @@ function ReceiptModal({
   // ============================================================
   // SUPPORT receipt / payment
   // ============================================================
-
+const admin = isAdmin();
   const data = receipt || payment;
 
   // ============================================================
@@ -1028,29 +1028,27 @@ const sendWhatsApp = async () => {
             PDF
           </button>
 
-          <button
-            type="button"
-            className="receipt-btn share"
-            onClick={
-              handleShare
-            }
-          >
-            <Share2 size={17} />
-            Share
-          </button>
+         {admin && (
+  <button
+    type="button"
+    className="receipt-btn share"
+    onClick={handleShare}
+  >
+    <Share2 size={17} />
+    Share
+  </button>
+)}
 
-          <button
-            type="button"
-            className="receipt-btn whatsapp"
-            onClick={
-              sendWhatsApp
-            }
-          >
-            <MessageCircle
-              size={17}
-            />
-            WhatsApp
-          </button>
+          {admin && (
+  <button
+    type="button"
+    className="receipt-btn whatsapp"
+    onClick={sendWhatsApp}
+  >
+    <MessageCircle size={17} />
+    WhatsApp
+  </button>
+)}
 
           <button
             type="button"

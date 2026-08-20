@@ -29,6 +29,8 @@ import {
 
 import useMandalConfig
   from "../hooks/useMandalConfig";
+  
+  import { isAdmin } from "../utils/permissions";
 
 import ReceiptModal from "./ReceiptModal";
 
@@ -39,6 +41,8 @@ import "./Receipts.css";
 // ============================================================
 
 function Receipts() {
+
+  const admin = isAdmin();
 
   // ============================================================
   // STATE
@@ -458,18 +462,24 @@ function Receipts() {
 
   const openAddModal = () => {
 
-    setForm({
-      memberId: "",
-      amount: "",
-      mode: "Cash",
-      date: new Date()
-        .toISOString()
-        .slice(0, 10),
-    });
+  if (!isAdmin()) {
+    alert(
+      "तुम्हाला पावती नोंदवण्याची permission नाही."
+    );
+    return;
+  }
 
-    setShowAddModal(true);
+  setForm({
+    memberId: "",
+    amount: "",
+    mode: "Cash",
+    date: new Date()
+      .toISOString()
+      .slice(0, 10),
+  });
 
-  };
+  setShowAddModal(true);
+};
 
   // ============================================================
   // CLOSE ADD MODAL
@@ -489,11 +499,18 @@ function Receipts() {
   // ADD RECEIPT
   // ============================================================
 
-  const handleAddReceipt = async (
-    event
-  ) => {
+  const handleAddReceipt = async (event) => {
 
-    event.preventDefault();
+  if (!isAdmin()) {
+    alert(
+      "तुम्हाला पावती नोंदवण्याची permission नाही."
+    );
+    return;
+  }
+
+  event.preventDefault();
+
+  // बाकीचा existing code...
 
     // ----------------------------------------------------------
     // MEMBER VALIDATION
@@ -1078,19 +1095,16 @@ Remark: ${remark}
 
         </div>
 
-        <button
-          type="button"
-          className="add-receipt-btn"
-          onClick={openAddModal}
-        >
-
-          <Plus
-            size={18}
-          />
-
-          पावती नोंदवा
-
-        </button>
+        {admin && (
+  <button
+    type="button"
+    className="add-receipt-btn"
+    onClick={openAddModal}
+  >
+    <Plus size={18} />
+    पावती नोंदवा
+  </button>
+)}
 
       </div>
 
@@ -1642,22 +1656,18 @@ Remark: ${remark}
 
                             {/* WHATSAPP */}
 
-                            <button
-                              type="button"
-                              className="receipt-action whatsapp"
-                              title="Send on WhatsApp"
-                              onClick={() =>
-                                sendWhatsApp(
-                                  receipt
-                                )
-                              }
-                            >
-
-                              <MessageCircle
-                                size={15}
-                              />
-
-                            </button>
+                            {admin && (
+  <button
+    type="button"
+    className="receipt-action whatsapp"
+    title="Send on WhatsApp"
+    onClick={() =>
+      sendWhatsApp(receipt)
+    }
+  >
+    <MessageCircle size={15} />
+  </button>
+)}
 
                           </div>
 

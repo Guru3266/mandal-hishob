@@ -22,7 +22,11 @@ import {
   saveMandalConfig,
 } from "../utils/mandalConfig";
 
+import { isAdmin } from "../utils/permissions";
+
 function Settings() {
+
+  const admin = isAdmin();
   // ============================================================
   // FORM DATA
   // ============================================================
@@ -254,6 +258,12 @@ function Settings() {
   // ============================================================
 
   const handleSave = () => {
+    if (!isAdmin()) {
+  alert(
+    "तुम्हाला Settings बदलण्याची permission नाही."
+  );
+  return;
+}
     if (saving) {
       return;
     }
@@ -450,6 +460,7 @@ function Settings() {
               type="text"
               name="name"
               value={formData.name}
+              disabled={!admin}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder="उदा. लक्ष्मी तरुण मित्र मंडळ"
@@ -473,6 +484,7 @@ function Settings() {
               type="text"
               name="tagline"
               value={formData.tagline}
+              disabled={!admin}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder="उदा. गणपती उत्सव"
@@ -498,6 +510,7 @@ function Settings() {
               type="number"
               name="eventYear"
               value={formData.eventYear}
+              disabled={!admin}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               min="2020"
@@ -527,6 +540,7 @@ function Settings() {
               type="text"
               name="address"
               value={formData.address}
+              disabled={!admin}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder="उदा. बस स्टँड, गणोरे, ता. अकोले"
@@ -550,6 +564,7 @@ function Settings() {
               type="tel"
               name="mobile"
               value={formData.mobile}
+              disabled={!admin}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               maxLength={10}
@@ -575,6 +590,7 @@ function Settings() {
               type="text"
               name="upiId"
               value={formData.upiId}
+              disabled={!admin}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder="उदा. laxmitarunmandal@upi"
@@ -606,6 +622,7 @@ function Settings() {
               value={
                 formData.receiptPrefix
               }
+              disabled={!admin}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               maxLength={10}
@@ -638,6 +655,7 @@ function Settings() {
               value={
                 formData.receiptStartNumber
               }
+              disabled={!admin}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               min="1"
@@ -691,30 +709,32 @@ function Settings() {
               SAVE
           ================================================== */}
 
-          <div className="settings-actions">
+          {admin && (
+  <div className="settings-actions">
 
-            <button
-              type="button"
-              className="save-settings-btn"
-              onClick={handleSave}
-              disabled={saving}
-            >
+    <button
+      type="button"
+      className="settings-reset-btn"
+      onClick={resetSettings}
+    >
+      <RotateCcw size={15} />
+      Reset
+    </button>
 
-              <Save size={17} />
+    <button
+      type="button"
+      className="settings-save-btn"
+      onClick={handleSave}
+    >
+      <Save size={15} />
 
-              {saving
-                ? "Saving..."
-                : "माहिती Save करा"}
+      {saved
+        ? "Saved ✓"
+        : "Save Settings"}
+    </button>
 
-            </button>
-
-            {saved && (
-              <span className="save-success">
-                ✓ माहिती successfully save झाली
-              </span>
-            )}
-
-          </div>
+  </div>
+)}
 
         </div>
       </div>

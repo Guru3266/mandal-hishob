@@ -20,12 +20,14 @@ import {
   deleteMemberFromSupabase,
 } from "../utils/supabaseMembers";
 
-
+import { isAdmin } from "../utils/permissions";
 
 import "./Members.css";
 
 
 function Members() {
+
+  const admin = isAdmin();
 
   const [members, setMembers] =
     useState([]);
@@ -243,42 +245,40 @@ function Members() {
 
   const openAddModal = () => {
 
-    setEditingMember(null);
+  if (!isAdmin()) {
+    return;
+  }
 
-    setFormData(
-      emptyForm
-    );
+  setEditingMember(null);
 
-    setShowModal(true);
+  setFormData(emptyForm);
 
-  };
+  setShowModal(true);
+};
 
 
   /* =====================================================
      OPEN EDIT MODAL
   ===================================================== */
 
-  const openEditModal = (
-    member
-  ) => {
+  const openEditModal = (member) => {
 
-    setEditingMember(
-      member
-    );
+  if (!isAdmin()) {
+    return;
+  }
 
+  setEditingMember(member);
 
   setFormData({
-  name: member.name || "",
-  mobile: member.mobile || "",
-  address: member.address || "",
-  area: member.area || "",
-  expected: member.expected || "",
-});
+    name: member.name || "",
+    mobile: member.mobile || "",
+    address: member.address || "",
+    area: member.area || "",
+    expected: member.expected || "",
+  });
 
-
-    setShowModal(true);
-
-  };
+  setShowModal(true);
+};
 
 
   /* =====================================================
@@ -429,7 +429,13 @@ function Members() {
      DELETE MEMBER
   ===================================================== */
 
-  const handleDelete = async (member) => {
+ const handleDelete = async (member) => {
+
+  if (!isAdmin()) {
+    alert("तुम्हाला Delete करण्याची permission नाही.");
+    return;
+  }
+
   const confirmed = window.confirm(
     `${member.name} हा वर्गणीदार आणि त्याच्या सर्व जमा पावत्या delete करायच्या आहेत का?`
   );
@@ -502,20 +508,15 @@ function Members() {
         </div>
 
 
-        <button
-          className="add-member-btn"
-          onClick={
-            openAddModal
-          }
-        >
-
-          <Plus
-            size={17}
-          />
-
-          वर्गणीदार जोडा
-
-        </button>
+       {admin && (
+  <button
+    className="add-member-btn"
+    onClick={openAddModal}
+  >
+    <Plus size={17} />
+    वर्गणीदार जोडा
+  </button>
+)}
 
       </div>
 
@@ -982,42 +983,33 @@ function Members() {
 
                       <td>
 
-                        <div className="member-actions">
+                       <div className="member-actions">
 
-                          <button
-                            className="member-edit-btn"
-                            onClick={() =>
-                              openEditModal(
-                                member
-                              )
-                            }
-                            title="Edit"
-                          >
+  {admin && (
+    <>
+      <button
+        className="member-edit-btn"
+        onClick={() =>
+          openEditModal(member)
+        }
+        title="Edit"
+      >
+        <Pencil size={15} />
+      </button>
 
-                            <Pencil
-                              size={15}
-                            />
+      <button
+        className="member-delete-btn"
+        onClick={() =>
+          handleDelete(member)
+        }
+        title="Delete"
+      >
+        <Trash2 size={15} />
+      </button>
+    </>
+  )}
 
-                          </button>
-
-
-                          <button
-                            className="member-delete-btn"
-                            onClick={() =>
-                              handleDelete(
-                                member
-                              )
-                            }
-                            title="Delete"
-                          >
-
-                            <Trash2
-                              size={15}
-                            />
-
-                          </button>
-
-                        </div>
+</div>
 
                       </td>
 

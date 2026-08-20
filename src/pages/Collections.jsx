@@ -21,10 +21,14 @@ import {
 
 import ReceiptModal from "./ReceiptModal";
 
+import { isAdmin } from "../utils/permissions";
+
 import "./Collections.css";
 
 
 function Collections() {
+
+  const admin = isAdmin();
 
   const [members, setMembers] =
     useState([]);
@@ -278,15 +282,13 @@ function Collections() {
 
   const openAddModal = () => {
 
-    setFormData(
-      emptyForm
-    );
+  if (!isAdmin()) {
+    return;
+  }
 
-    setShowModal(
-      true
-    );
-
-  };
+  setFormData(emptyForm);
+  setShowModal(true);
+};
 
 
   /* =====================================================
@@ -357,9 +359,16 @@ function Collections() {
      SAVE COLLECTION
   ===================================================== */
 
-  const handleSubmit = async (event) => {
+ const handleSubmit = async (event) => {
 
-    event.preventDefault();
+  if (!isAdmin()) {
+    alert(
+      "तुम्हाला जमा रक्कम नोंदवण्याची permission नाही."
+    );
+    return;
+  }
+
+  event.preventDefault();
 
 
     if (!formData.memberId) {
@@ -470,8 +479,15 @@ function Collections() {
   /* =====================================================
      DELETE
   ===================================================== */
+const handleDelete = async (collection) => {
 
-  const handleDelete = async (collection) => {
+  if (!isAdmin()) {
+    alert(
+      "तुम्हाला जमा रक्कम delete करण्याची permission नाही."
+    );
+    return;
+  }
+
   const confirmed = window.confirm(
     `Receipt ${collection.receiptNo} delete करायची आहे का?`
   );
@@ -484,6 +500,7 @@ function Collections() {
     await deleteCollection(collection.id);
 
     await loadData();
+
   } catch (error) {
     console.error(error);
 
@@ -578,20 +595,15 @@ function Collections() {
         </div>
 
 
-        <button
-          className="add-collection-btn"
-          onClick={
-            openAddModal
-          }
-        >
-
-          <Plus
-            size={17}
-          />
-
-          जमा रक्कम नोंदवा
-
-        </button>
+       {admin && (
+  <button
+    className="add-collection-btn"
+    onClick={openAddModal}
+  >
+    <Plus size={17} />
+    जमा रक्कम नोंदवा
+  </button>
+)}
 
       </div>
 
@@ -978,22 +990,17 @@ function Collections() {
 
                           </button>
 
-
-                          <button
-                            className="collection-delete-btn"
-                            onClick={() =>
-                              handleDelete(
-                                collection
-                              )
-                            }
-                            title="Delete"
-                          >
-
-                            <Trash2
-                              size={15}
-                            />
-
-                          </button>
+{admin && (
+  <button
+    className="collection-delete-btn"
+    onClick={() =>
+      handleDelete(collection)
+    }
+    title="Delete"
+  >
+    <Trash2 size={15} />
+  </button>
+)}
 
                         </div>
 
