@@ -263,68 +263,101 @@ function ReceiptModal({
   // WHATSAPP
   // ============================================================
 
-  const sendWhatsApp = () => {
-    const cleanPhone =
-      String(mobile)
-        .replace(/\D/g, "");
+const sendWhatsApp = async () => {
+  const cleanPhone = String(mobile || "").replace(/\D/g, "");
 
-    if (
-      cleanPhone.length !== 10
-    ) {
-      alert(
-        "या वर्गणीदाराचा valid 10 अंकी mobile number उपलब्ध नाही."
-      );
+  if (cleanPhone.length !== 10) {
+    alert("या वर्गणीदाराचा valid 10 अंकी mobile number उपलब्ध नाही.");
+    return;
+  }
 
-      return;
+  const receiptElement = document.getElementById(
+    "receipt-print-area"
+  );
+
+  if (!receiptElement) {
+    alert("Receipt सापडली नाही.");
+    return;
+  }
+
+  try {
+    const canvas = await html2canvas(receiptElement, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+    });
+
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/png", 1)
+    );
+
+    if (!blob) {
+      throw new Error("Receipt image तयार झाली नाही.");
     }
 
-    const message = `
-🙏 ${mandalName}
+    const file = new File(
+      [blob],
+      `${receiptNo}-receipt.png`,
+      {
+        type: "image/png",
+      }
+    );
+
+    const whatsappText = `🙏 ${mandalName}
 
 ${tagline}
 
-🧾 जमा पावती
-
-पावती क्रमांक: ${receiptNo}
+जमा पावती: ${receiptNo}
 
 वर्गणीदार: ${memberName}
-Member ID: ${memberId}
-Mobile: ${mobile}
-
 जमा रक्कम: ₹${formattedAmount}
 Payment Mode: ${mode}
 दिनांक: ${date}
 
-Remark: ${remark}
+${mandalName} च्या वतीने धन्यवाद 🙏`;
 
-${address ? `📍 ${address}` : ""}
+    // Mobile / supported browser
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({
+        files: [file],
+      })
+    ) {
+      await navigator.share({
+        title: `जमा पावती - ${receiptNo}`,
+        text: whatsappText,
+        files: [file],
+      });
 
-${
-  mandalMobile
-    ? `📞 ${mandalMobile}`
-    : ""
-}
+      return;
+    }
 
-${
-  upiId
-    ? `💳 UPI: ${upiId}`
-    : ""
-}
-
-${mandalName} च्या वतीने धन्यवाद 🙏
-    `.trim();
-
+    // Desktop / fallback
     const whatsappUrl =
-      `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
-        message
-      )}`;
+      `https://wa.me/91${cleanPhone}?text=` +
+      encodeURIComponent(whatsappText);
 
     window.open(
       whatsappUrl,
       "_blank",
       "noopener,noreferrer"
     );
-  };
+
+    alert(
+      "Receipt image तयार आहे. Desktop वर WhatsApp मध्ये image manually attach करा."
+    );
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      return;
+    }
+
+    console.error("WhatsApp receipt error:", error);
+
+    alert("WhatsApp receipt तयार करताना समस्या आली.");
+  }
+};
 
   // ============================================================
   // SHARE
@@ -711,28 +744,29 @@ ${mandalName} च्या वतीने धन्यवाद 🙏
 
           <div className="receipt-heading">
 
-            <div
-              style={{
-                fontSize: "26px",
-                marginBottom: "6px",
-              }}
-            >
-              🙏
-            </div>
+         <img
+  src="/logo.png"
+  alt="मंडळाचा लोगो"
+  className="receipt-logo"
+/>
 
-            <h1>
-              {mandalName}
-            </h1>
+<h1>
+  लक्ष्मी तरुण मित्र मंडळ
+</h1>
 
-            {tagline && (
-              <p>
-                {tagline}
-              </p>
-            )}
+<p>
+  गणोरे
+</p>
 
-            <h2>
-              जमा पावती
-            </h2>
+{tagline && (
+  <p className="receipt-tagline">
+    {tagline}
+  </p>
+)}
+
+<div className="receipt-title">
+  जमा पावती
+</div>
 
           </div>
 
