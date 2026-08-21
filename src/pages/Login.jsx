@@ -267,8 +267,11 @@ function Login() {
         {/* LOGO */}
 
         <div className="login-logo">
-          🙏
-        </div>
+  <img
+    src="/logo.png"
+    alt="मंडळाचा लोगो"
+  />
+</div>
 
         {/* TITLE */}
 

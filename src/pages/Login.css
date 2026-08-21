@@ -18,15 +18,31 @@
 }
 
 .login-logo {
-  width: 65px;
-  height: 65px;
-  margin: 0 auto 18px;
-  border-radius: 16px;
-  background: #f59e0b;
+  width: 80px;
+  height: 80px;
+
+  margin: 0 auto 16px;
+
+  border-radius: 50%;
+  overflow: hidden;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
+
+  background: #fff;
+  border: 3px solid #f5d99a;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.login-logo img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: contain;
 }
 
 .login-card h1 {
