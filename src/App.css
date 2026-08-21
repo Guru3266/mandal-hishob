@@ -3556,3 +3556,158 @@ td:nth-child(3) {
   object-fit: contain;
   border-radius: 50%;
 }
+@media (max-width: 768px) {
+
+  .logo {
+    gap: 8px;
+  }
+
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+
+  .logo > div:last-child {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .logo h2 {
+    font-size: 14px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: visible;
+  }
+
+  .logo span {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+}
+/* ============================================================
+   FINAL MOBILE HEADER LOGO FIX
+   ============================================================ */
+
+@media (max-width: 480px) {
+
+  .mobile-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    width: 100% !important;
+    min-height: 64px !important;
+
+    padding: 10px 12px !important;
+
+    background: #0f172a !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+
+    overflow: hidden !important;
+  }
+
+  /* LOGO CIRCLE */
+  .mobile-header-logo {
+    width: 44px !important;
+    height: 44px !important;
+
+    min-width: 44px !important;
+    max-width: 44px !important;
+
+    flex: 0 0 44px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 50% !important;
+    overflow: hidden !important;
+
+    background: #ffffff !important;
+    border: 2px solid #f5d99a !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    position: relative !important;
+    z-index: 5 !important;
+  }
+
+  /* ACTUAL LOGO IMAGE */
+  .mobile-header-logo img {
+    width: 100% !important;
+    height: 100% !important;
+
+    max-width: none !important;
+    max-height: none !important;
+
+    display: block !important;
+
+    object-fit: cover !important;
+    object-position: center !important;
+
+    border-radius: 50% !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* HEADER TEXT */
+  .mobile-header > div:nth-child(2) {
+    flex: 1 !important;
+
+    min-width: 0 !important;
+
+    margin-left: 9px !important;
+
+    overflow: hidden !important;
+
+    position: relative !important;
+    z-index: 4 !important;
+  }
+
+  .mobile-header > div:nth-child(2) h2 {
+    margin: 0 !important;
+
+    color: #ffffff !important;
+
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .mobile-header > div:nth-child(2) span {
+    display: block !important;
+
+    margin-top: 3px !important;
+
+    color: #94a3b8 !important;
+
+    font-size: 9px !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* HAMBURGER */
+  .mobile-menu-button {
+    width: 42px !important;
+    height: 42px !important;
+
+    min-width: 42px !important;
+
+    flex-shrink: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    position: relative !important;
+    z-index: 6 !important;
+  }
+}

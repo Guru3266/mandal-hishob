@@ -274,48 +274,33 @@ function DashboardLayout() {
       {/* ======================================================
           MOBILE HEADER
       ====================================================== */}
+<div className="mobile-header">
 
-      <div className="mobile-header">
+  <div className="mobile-header-logo">
+    <img
+      src="/logo.png"
+      alt="मंडळाचा लोगो"
+    />
+  </div>
 
-        <div className="mobile-header-logo">
+  <div>
+    <h2>
+      {mandalConfig?.name || "मंडळाचे नाव"}
+    </h2>
 
-          <div className="logo-icon">
-            🙏
-          </div>
+    <span>
+      {mandalConfig?.tagline || "गणपती उत्सव 2026"}
+    </span>
+  </div>
 
-          <div>
-            <h2>
-              {mandalConfig?.name ||
-                "मंडळाचे नाव"}
-            </h2>
+  <button
+    className="mobile-menu-button"
+    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+  >
+    ☰
+  </button>
 
-            <span>
-              {mandalConfig?.tagline ||
-                "गणपती उत्सव 2026"}
-            </span>
-          </div>
-
-        </div>
-
-        <button
-          type="button"
-          className="mobile-menu-button"
-          onClick={() =>
-            setMobileMenuOpen(
-              (previous) =>
-                !previous
-            )
-          }
-        >
-          {mobileMenuOpen ? (
-            <X size={24} />
-          ) : (
-            <Menu size={24} />
-          )}
-        </button>
-
-      </div>
-
+</div>
       {/* ======================================================
           SIDEBAR
       ====================================================== */}
