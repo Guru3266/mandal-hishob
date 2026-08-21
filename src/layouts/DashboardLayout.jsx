@@ -31,6 +31,7 @@ import { isAdmin } from "../utils/permissions";
 import useMandalConfig
   from "../hooks/useMandalConfig";
 
+
 import "../App.css";
 
 function DashboardLayout() {
@@ -331,27 +332,26 @@ function DashboardLayout() {
             LOGO
         ==================================================== */}
 
-        <div className="logo">
+<div className="logo">
 
-          <div className="logo-icon">
-            🙏
-          </div>
+  <div className="logo-icon">
+    <img
+      src="/logo.png"
+      alt="लक्ष्मी तरुण मित्र मंडळ"
+    />
+  </div>
 
-          <div>
+  <div>
+    <h2>
+      {mandalConfig?.name || "मंडळाचे नाव"}
+    </h2>
 
-            <h2>
-              {mandalConfig?.name ||
-                "मंडळाचे नाव"}
-            </h2>
+    <span>
+      {mandalConfig?.tagline || "गणपती उत्सव 2026"}
+    </span>
+  </div>
 
-            <span>
-              {mandalConfig?.tagline ||
-                "गणपती उत्सव 2026"}
-            </span>
-
-          </div>
-
-        </div>
+</div>
 
         {/* ====================================================
             NAVIGATION
