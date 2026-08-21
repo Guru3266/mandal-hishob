@@ -710,30 +710,28 @@ function Settings() {
           ================================================== */}
 
           {admin && (
-  <div className="settings-actions">
+<div className="settings-actions">
 
-    <button
-      type="button"
-      className="settings-reset-btn"
-      onClick={resetSettings}
-    >
-      <RotateCcw size={15} />
-      Reset
-    </button>
+  <button
+    type="button"
+    className="save-settings-btn"
+    onClick={handleSave}
+    disabled={saving}
+  >
+    <Save size={17} />
 
-    <button
-      type="button"
-      className="settings-save-btn"
-      onClick={handleSave}
-    >
-      <Save size={15} />
+    {saving
+      ? "Saving..."
+      : "माहिती Save करा"}
+  </button>
 
-      {saved
-        ? "Saved ✓"
-        : "Save Settings"}
-    </button>
+  {saved && (
+    <span className="save-success">
+      ✓ माहिती successfully save झाली
+    </span>
+  )}
 
-  </div>
+</div>
 )}
 
         </div>
